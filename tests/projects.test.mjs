@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const resume = readFileSync(new URL("../src/data/resume.tsx", import.meta.url), "utf8");
@@ -28,4 +28,23 @@ test("matches the annotated project lineup", () => {
     projects,
     /title: "Hybrid Deep Learning Model for Stock Price Prediction"/,
   );
+});
+
+test("uses local screenshots for the new project cards", () => {
+  for (const image of [
+    "/projects/apartcheck_headerPage.png",
+    "/projects/wpdbot_dashboard.png",
+    "/projects/classroom_dashboard.png",
+  ]) {
+    assert.equal(
+      normalizedProjects.includes(`image: "${image}"`),
+      true,
+      `missing project image reference: ${image}`,
+    );
+    assert.equal(
+      existsSync(new URL(`../public${image}`, import.meta.url)),
+      true,
+      `missing project image asset: ${image}`,
+    );
+  }
 });

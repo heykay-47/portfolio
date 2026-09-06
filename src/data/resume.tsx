@@ -214,7 +214,7 @@ export const DATA = {
           icon: <Icons.github className="size-3" />,
         },
       ],
-      image: "",
+      image: "/projects/apartcheck_headerPage.png",
       video: "",
     },
     {
@@ -240,7 +240,7 @@ export const DATA = {
           icon: <Icons.github className="size-3" />,
         },
       ],
-      image: "",
+      image: "/projects/wpdbot_dashboard.png",
       video: "",
     },
     {
@@ -265,7 +265,7 @@ export const DATA = {
           icon: <Icons.github className="size-3" />,
         },
       ],
-      image: "",
+      image: "/projects/classroom_dashboard.png",
       video: "",
     },
   ],
