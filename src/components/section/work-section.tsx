@@ -66,12 +66,13 @@ export default function WorkSection() {
                   </div>
                   <div className="font-sans text-sm text-muted-foreground">
                     {work.title}
+                    {work.location ? ` | ${work.location}` : ""}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground text-right flex-none">
                 <span>
-                  {work.start} - {work.end ?? "Present"}
+                  {work.start}{work.end ? ` - ${work.end}` : ""}
                 </span>
               </div>
             </div>
@@ -84,4 +85,3 @@ export default function WorkSection() {
     </Accordion>
   );
 }
-

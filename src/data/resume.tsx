@@ -118,6 +118,18 @@ export const DATA = {
   },
   work: [
     {
+      company: "Archimedis Digital",
+      href: "",
+      badges: [],
+      location: "Chennai",
+      title: "Full Stack Intern",
+      logoUrl:
+        "https://media.licdn.com/dms/image/v2/D560BAQHVaEpS6X7g-A/company-logo_200_200/B56ZjSYaHmIAAM-/0/1755876271029/archimedis_digital_logo?e=2147483647&v=beta&t=iiVNxr5NpRacZDa4JRntkF916vs1HLVx8Wc-yTF_qoA",
+      start: "June 2026",
+      end: "",
+      description: "",
+    },
+    {
       company: "Developer Community SASTRA & Google Developer Groups",
       href: "",
       badges: [],
