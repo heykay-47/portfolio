@@ -127,7 +127,21 @@ export const DATA = {
         "https://media.licdn.com/dms/image/v2/D560BAQHVaEpS6X7g-A/company-logo_200_200/B56ZjSYaHmIAAM-/0/1755876271029/archimedis_digital_logo?e=2147483647&v=beta&t=iiVNxr5NpRacZDa4JRntkF916vs1HLVx8Wc-yTF_qoA",
       start: "June 2026",
       end: "",
-      description: "",
+      description: (
+        <ul className="list-disc space-y-1 pl-4">
+          <li>
+            Learned web performance optimization techniques including React
+            component optimization, lazy loading, code splitting, and asset
+            compression to improve website load performance.
+          </li>
+          <li>
+            Gained practical understanding of backend performance optimization
+            using Node.js, Express.js, and MongoDB, including query
+            optimization, REST API structuring, efficient data retrieval, and
+            error handling.
+          </li>
+        </ul>
+      ),
     },
     {
       company: "Developer Community SASTRA & Google Developer Groups",
