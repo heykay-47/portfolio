@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { Fragment } from "react";
+import { Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { DATA } from "@/data/resume";
@@ -37,17 +38,16 @@ export default function HackathonsSection() {
             </div>
             <div className="flex-1 h-px bg-linear-to-l from-transparent from-5% via-border via-95% to-transparent" />
           </div>
-          <div className="flex flex-col gap-y-3 items-center justify-center">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-              I like building things
+          <div className="flex items-center justify-center">
+            <h2 className="flex items-center justify-center gap-3 text-3xl font-bold tracking-tighter sm:text-4xl">
+              <span>I</span>
+              <Heart
+                className="size-10 fill-red-500 text-red-500 sm:size-12"
+                aria-hidden="true"
+              />
+              <span className="sr-only">love</span>
+              <span>building things</span>
             </h2>
-            <p className="text-muted-foreground md:text-lg/relaxed lg:text-base/relaxed xl:text-lg/relaxed text-balance text-center">
-              During my time in university, I attended {DATA.hackathons.length}+
-              hackathons. People from around the country would come together and
-              build incredible things in 2-3 days. It was eye-opening to see the
-              endless possibilities brought to life by a group of motivated and
-              passionate individuals.
-            </p>
           </div>
         </div>
         <Timeline>

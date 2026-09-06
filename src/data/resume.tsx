@@ -62,7 +62,7 @@ export const DATA = {
   url: "https://portfolio.adguardian.me",
   location: "Tamil Nadu, India",
   locationLink: "https://www.google.com/maps/place/Tamil+Nadu,+India",
-  description: "Third Year Computer Science and Engineering student from India",
+  description: "Fourth Year Computer Science and Engineering student from India",
   summary:
     "I’m Krithik, a CSE student who likes building things that work, fixing things that don’t, and learning something new along the way. Most of my time goes into coding, exploring tech, participating in hackathons/CTFs, and working on projects that start with “this should be simple” and somehow turn into something genuinely fun.",
   avatarUrl: "/me/krithik.png",
