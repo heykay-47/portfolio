@@ -9,6 +9,7 @@ import ContactSection from "@/components/section/contact-section";
 import HackathonsSection from "@/components/section/hackathons-section";
 import ProjectsSection from "@/components/section/projects-section";
 import WorkSection from "@/components/section/work-section";
+import LlmbidBanner from "@/components/llmbid-banner";
 import { ArrowUpRight } from "lucide-react";
 
 const BLUR_FADE_DELAY = 0.04;
@@ -16,7 +17,8 @@ const BLUR_FADE_DELAY = 0.04;
 export default function Page() {
   return (
     <main className="min-h-dvh flex flex-col gap-14 relative">
-      <section id="hero">
+      <section id="hero" className="space-y-8">
+        <LlmbidBanner />
         <div className="mx-auto w-full max-w-2xl space-y-8">
           <div className="gap-2 gap-y-6 flex flex-col md:flex-row justify-between">
             <div className="gap-2 flex flex-col order-2 md:order-1">
