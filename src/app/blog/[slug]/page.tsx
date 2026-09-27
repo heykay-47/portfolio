@@ -7,6 +7,7 @@ import { MDXContent } from "@content-collections/mdx/react";
 import { mdxComponents } from "@/mdx-components";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { ComponentProps } from "react";
 
 function getSortedPosts() {
   return [...allPosts].sort((a, b) => {
@@ -119,6 +120,12 @@ export default async function Blog({
     },
   }).replace(/</g, "\\u003c");
 
+  const articleMdxComponents = {
+    ...mdxComponents,
+    h1: ({ children, ...props }: ComponentProps<"h1">) =>
+      children === post.title ? null : <h2 {...props}>{children}</h2>,
+  };
+
   return (
     <main>
       <section id="blog">
@@ -155,7 +162,7 @@ export default async function Blog({
         />
       </div>
       <article className="prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
-        <MDXContent code={post.mdx} components={mdxComponents} />
+        <MDXContent code={post.mdx} components={articleMdxComponents} />
       </article>
 
       <nav className="mt-12 pt-8 max-w-2xl">

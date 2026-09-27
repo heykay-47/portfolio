@@ -43,6 +43,11 @@ test("uses one main landmark on the blog index and article routes", () => {
   assert.match(articlePage, /<main[\s\S]*<\/main>/);
 });
 
+test("avoids duplicate article titles and keeps body headings below the page h1", () => {
+  assert.match(articlePage, /children === post\.title \? null : <h2/);
+  assert.match(articlePage, /components=\{articleMdxComponents\}/);
+});
+
 test("preserves the placeholder blog introduction and existing author metadata", () => {
   assert.match(blogPage, /My thoughts on software development, life, and more\./);
   assert.match(articlePage, /name: DATA\.name/);
