@@ -8,6 +8,7 @@ const banner = readFileSync(
 );
 const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+const borderBeam = readFileSync(new URL("../src/components/magicui/border-beam.tsx", import.meta.url), "utf8");
 
 test("places the llmbid.lol promotion before the portfolio hero content", () => {
   assert.match(page, /<section id="hero" className="space-y-8">\s*<LlmbidBanner \/>/);
@@ -17,11 +18,13 @@ test("places the llmbid.lol promotion before the portfolio hero content", () => 
 });
 
 test("keeps the banner animation enabled by preference and manually pausable", () => {
-  assert.match(banner, /llmbid-banner-border/);
-  assert.match(styles, /@keyframes llmbid-banner-border-spin/);
-  assert.match(styles, /conic-gradient\(/);
+  assert.match(banner, /<BorderBeam paused=\{isMotionPaused\}/);
+  assert.match(borderBeam, /firecracker-spark/);
+  assert.match(styles, /offset-path: border-box/);
+  assert.doesNotMatch(styles, /offset-path: rect\(/);
+  assert.match(styles, /\.firecracker \{\s*border: [^;]*solid/);
+  assert.match(styles, /@keyframes firecracker-burn[\s\S]*offset-distance: 100%/);
   assert.doesNotMatch(styles, /prefers-reduced-motion:\s*reduce/);
   assert.match(banner, /useMotionPlayback/);
-  assert.match(styles, /\.llmbid-banner-border\.motion-paused::before/);
-  assert.match(styles, /animation-play-state:\s*paused/);
+  assert.match(styles, /\.motion-paused \.firecracker-spark[\s\S]*animation-play-state: paused/);
 });

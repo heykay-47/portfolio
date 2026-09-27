@@ -10,6 +10,7 @@ import HackathonsSection from "@/components/section/hackathons-section";
 import ProjectsSection from "@/components/section/projects-section";
 import WorkSection from "@/components/section/work-section";
 import LlmbidBanner from "@/components/llmbid-banner";
+import ResumeLink from "@/components/resume-link";
 import { ArrowUpRight } from "lucide-react";
 
 const BLUR_FADE_DELAY = 0.04;
@@ -24,8 +25,13 @@ export default function Page() {
             <div className="order-1 flex flex-col items-start gap-5 md:flex-1">
               <BlurFade delay={BLUR_FADE_DELAY}>
                 <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl">
-                  Full-stack developer building end-to-end web products
+                  Hi! I&apos;m Krithik
                 </h1>
+              </BlurFade>
+              <BlurFade delay={BLUR_FADE_DELAY * 2}>
+                <p className="text-base text-muted-foreground">
+                  I ship products and features fast, and make sure they work end to end
+                </p>
               </BlurFade>
               <div className="flex flex-wrap items-center gap-2">
                 <Button asChild size="lg">
@@ -34,15 +40,7 @@ export default function Page() {
                 <Button asChild size="lg" variant="outline">
                   <Link href={DATA.contact.social.email.url}>Email me</Link>
                 </Button>
-                <Button asChild size="lg" variant="ghost">
-                  <Link
-                    href={DATA.resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View resume
-                  </Link>
-                </Button>
+                <ResumeLink href={DATA.resumeUrl} />
               </div>
             </div>
             <BlurFade delay={BLUR_FADE_DELAY} className="order-2 shrink-0">

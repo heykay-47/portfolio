@@ -1,29 +1,30 @@
 import { Icons } from "@/components/icons";
-import { ArrowUpRight, HomeIcon, NotebookIcon } from "lucide-react";
+import { ArrowUpRight, CreditCard, Download, FileText, HomeIcon, NotebookIcon } from "lucide-react";
 import { makeSimpleIcon } from "@/components/ui/simple-icon";
 import type { ReactNode } from "react";
 import {
   siCss,
   siDocker,
   siExpress,
+  siFastapi,
+  siFfmpeg,
   siGit,
-  siGooglegemini,
-  siGooglecloud,
+  siGoogleclassroom,
+  siGoogledrive,
   siHtml5,
   siJavascript,
-  siLangchain,
-  siLanggraph,
+  siJsonwebtokens,
   siLinux,
   siMongodb,
-  siMysql,
+  siNextdotjs,
   siNodedotjs,
   siPostgresql,
   siPython,
-  siPytorch,
   siReact,
   siSqlite,
-  siSupabase,
   siTailwindcss,
+  siTypescript,
+  siWhatsapp,
 } from "simple-icons";
 
 type HackathonLink = {
@@ -34,6 +35,8 @@ type HackathonLink = {
 
 const skillIcons = {
   react: makeSimpleIcon(siReact),
+  next: makeSimpleIcon(siNextdotjs),
+  typescript: makeSimpleIcon(siTypescript),
   node: makeSimpleIcon(siNodedotjs),
   express: makeSimpleIcon(siExpress),
   tailwind: makeSimpleIcon(siTailwindcss),
@@ -42,15 +45,14 @@ const skillIcons = {
   javascript: makeSimpleIcon(siJavascript),
   python: makeSimpleIcon(siPython),
   sql: makeSimpleIcon(siSqlite),
-  langchain: makeSimpleIcon(siLangchain),
-  langgraph: makeSimpleIcon(siLanggraph),
-  gemini: makeSimpleIcon(siGooglegemini),
-  pytorch: makeSimpleIcon(siPytorch),
+  fastapi: makeSimpleIcon(siFastapi),
+  ffmpeg: makeSimpleIcon(siFfmpeg),
+  classroom: makeSimpleIcon(siGoogleclassroom),
+  drive: makeSimpleIcon(siGoogledrive),
+  jwt: makeSimpleIcon(siJsonwebtokens),
+  whatsapp: makeSimpleIcon(siWhatsapp),
   postgresql: makeSimpleIcon(siPostgresql),
-  mysql: makeSimpleIcon(siMysql),
   mongodb: makeSimpleIcon(siMongodb),
-  supabase: makeSimpleIcon(siSupabase),
-  googleCloud: makeSimpleIcon(siGooglecloud),
   docker: makeSimpleIcon(siDocker),
   git: makeSimpleIcon(siGit),
   linux: makeSimpleIcon(siLinux),
@@ -62,32 +64,37 @@ export const DATA = {
   url: "https://www.krithik.dev/",
   location: "Tamil Nadu, India",
   locationLink: "https://www.google.com/maps/place/Tamil+Nadu,+India",
-  description: "Full-stack developer building end-to-end web products",
+  description: "I ship products and features fast, and make sure they work end to end",
   summary:
-    "I’m a fourth-year Computer Science student at SASTRA. I build web products and explore AI through projects and hackathons.",
+    "I'm Krithik, final year CSE undergrad who loves building things that work, fixing things that don't, and learning something new along the way. Most of my time goes into coding, exploring tech, participating in hackathons and CTFs, and working on projects that start with “this should be simple” and turn them into something genuinely fun.",
   resumeUrl:
     "https://drive.google.com/file/d/1x-vCV9R8I2daZaYqVVMRaX76fLV7yghA/view?usp=sharing",
   avatarUrl: "/me/krithik.png",
   skills: [
+    { name: "Next.js", icon: skillIcons.next },
+    { name: "TypeScript", icon: skillIcons.typescript },
     { name: "React.js", icon: skillIcons.react },
     { name: "Node.js", icon: skillIcons.node },
     { name: "Express.js", icon: skillIcons.express },
+    { name: "PostgreSQL", icon: skillIcons.postgresql },
+    { name: "MongoDB", icon: skillIcons.mongodb },
+    { name: "MongoDB Atlas", icon: skillIcons.mongodb },
+    { name: "Docker", icon: skillIcons.docker },
+    { name: "Dodo Payments", icon: CreditCard },
+    { name: "JWT cookies", icon: skillIcons.jwt },
     { name: "Tailwind CSS", icon: skillIcons.tailwind },
+    { name: "Python", icon: skillIcons.python },
+    { name: "FastAPI", icon: skillIcons.fastapi },
+    { name: "SQLite", icon: skillIcons.sql },
+    { name: "whatsapp-web.js", icon: skillIcons.whatsapp },
+    { name: "yt-dlp", icon: Download },
+    { name: "FFmpeg", icon: skillIcons.ffmpeg },
+    { name: "Google Classroom API", icon: skillIcons.classroom },
+    { name: "Google Drive API", icon: skillIcons.drive },
+    { name: "Gotenberg", icon: FileText },
     { name: "HTML", icon: skillIcons.html },
     { name: "CSS", icon: skillIcons.css },
     { name: "JavaScript", icon: skillIcons.javascript },
-    { name: "Python", icon: skillIcons.python },
-    { name: "SQL", icon: skillIcons.sql },
-    { name: "LangChain", icon: skillIcons.langchain },
-    { name: "LangGraph", icon: skillIcons.langgraph },
-    { name: "Google Gemini API", icon: skillIcons.gemini },
-    { name: "PyTorch", icon: skillIcons.pytorch },
-    { name: "PostgreSQL", icon: skillIcons.postgresql },
-    { name: "MySQL", icon: skillIcons.mysql },
-    { name: "MongoDB", icon: skillIcons.mongodb },
-    { name: "Supabase", icon: skillIcons.supabase },
-    { name: "Google Cloud Platform", icon: skillIcons.googleCloud },
-    { name: "Docker", icon: skillIcons.docker },
     { name: "Git", icon: skillIcons.git },
     { name: "Linux/Unix", icon: skillIcons.linux },
   ],
@@ -132,15 +139,15 @@ export const DATA = {
       description: (
         <ul className="list-disc space-y-1 pl-4">
           <li>
-            Learned web performance optimization techniques including React
+            Improved performance on a client-facing React website by applying
             component optimization, lazy loading, code splitting, and asset
-            compression to improve website load performance.
+            compression, reducing unnecessary frontend load and improving
+            overall page responsiveness.
           </li>
           <li>
-            Gained practical understanding of backend performance optimization
-            using Node.js, Express.js, and MongoDB, including query
-            optimization, REST API structuring, efficient data retrieval, and
-            error handling.
+            Improved backend performance and reliability for a client’s website
+            by optimizing MongoDB queries, restructuring Node.js &amp; Express
+            REST APIs, and strengthening data retrieval and error-handling flows.
           </li>
         </ul>
       ),
@@ -170,6 +177,24 @@ export const DATA = {
     },
   ],
   projects: [
+    {
+      title: "llmbid.lol",
+      href: "https://llmbid.lol/",
+      dates: "Live LLM product",
+      active: true,
+      description:
+        "Built a full-stack LLM popularity market that ranks 50 models through $1 user bids, with all-time and rolling 24-hour leaderboards. Secured leaderboard updates through payment webhooks and limited bids per hour to prevent abuse.",
+      technologies: ["Next.js", "TypeScript", "PostgreSQL", "Docker", "Dodo Payments"],
+      links: [
+        {
+          type: "Live",
+          href: "https://llmbid.lol/",
+          icon: <ArrowUpRight className="size-3" />,
+        },
+      ],
+      image: "/projects/llmbid_headerPage.png",
+      video: "",
+    },
     {
       title: "VouchIt",
       href: "https://vouchit-xi.vercel.app/",
@@ -227,17 +252,6 @@ export const DATA = {
         },
       ],
       image: "/projects/apartcheck_headerPage.png",
-      video: "",
-    },
-    {
-      title: "llmbid.lol",
-      href: "https://llmbid.lol/",
-      dates: "Live LLM product",
-      active: true,
-      description: "A $1 LLM popularity leaderboard.",
-      technologies: [],
-      links: [],
-      image: "",
       video: "",
     },
     {

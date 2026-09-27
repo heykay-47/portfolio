@@ -55,7 +55,7 @@ export function ProjectCard({
   return (
     <div
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-xl border border-border transition-shadow duration-200 hover:ring-2 hover:ring-muted",
+        "flex flex-col overflow-hidden rounded-xl border border-border transition-shadow duration-200 hover:ring-2 hover:ring-muted",
         className
       )}
     >
@@ -97,7 +97,7 @@ export function ProjectCard({
         </div>
       )}
 
-      <div className="flex flex-1 flex-col gap-3 p-6">
+      <div className="flex flex-col gap-3 p-6">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
@@ -123,12 +123,12 @@ export function ProjectCard({
           </div>
         </div>
 
-        <div className="text-xs flex-1 prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
+        <div className="text-xs prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
           <Markdown>{description}</Markdown>
         </div>
 
         {links && links.length > 0 && (
-          <div className="mt-auto flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {links.map((link) => (
               <Link
                 href={link.href}
@@ -150,7 +150,7 @@ export function ProjectCard({
         )}
 
         {tags && tags.length > 0 && (
-          <div className="mt-auto flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
             {tags.map((tag) => (
               <Badge
                 key={tag}

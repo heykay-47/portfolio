@@ -16,8 +16,8 @@ test("includes the Archimedis Digital internship", () => {
     'location: "Chennai"',
     'start: "June 2026"',
     'end: ""',
-    "Learned web performance optimization techniques including React component optimization, lazy loading, code splitting, and asset compression to improve website load performance.",
-    "Gained practical understanding of backend performance optimization using Node.js, Express.js, and MongoDB, including query optimization, REST API structuring, efficient data retrieval, and error handling.",
+    "Improved performance on a client-facing React website by applying component optimization, lazy loading, code splitting, and asset compression, reducing unnecessary frontend load and improving overall page responsiveness.",
+    "Improved backend performance and reliability for a client’s website by optimizing MongoDB queries, restructuring Node.js &amp; Express REST APIs, and strengthening data retrieval and error-handling flows.",
     "https://media.licdn.com/dms/image/v2/D560BAQHVaEpS6X7g-A/company-logo_200_200/B56ZjSYaHmIAAM-/0/1755876271029/archimedis_digital_logo?e=2147483647&v=beta&t=iiVNxr5NpRacZDa4JRntkF916vs1HLVx8Wc-yTF_qoA",
   ]) {
     assert.equal(

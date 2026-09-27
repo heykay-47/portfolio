@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { Fragment } from "react";
-import { Heart } from "lucide-react";
+import AnimatedHeart from "@/components/animated-heart";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { DATA } from "@/data/resume";
@@ -41,10 +41,7 @@ export default function HackathonsSection() {
           <div className="flex items-center justify-center">
             <h2 className="flex items-center justify-center gap-3 text-3xl font-bold tracking-tighter sm:text-4xl">
               <span>I</span>
-              <Heart
-                className="size-10 fill-red-500 text-red-500 sm:size-12"
-                aria-hidden="true"
-              />
+              <AnimatedHeart />
               <span className="sr-only">love</span>
               <span>building things</span>
             </h2>

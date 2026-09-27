@@ -6,8 +6,9 @@ const resume = readFileSync(new URL("../src/data/resume.tsx", import.meta.url), 
 const projects = resume.slice(resume.indexOf("projects: ["), resume.indexOf("hackathons: ["));
 const normalizedProjects = projects.replace(/\s+/g, " ");
 const llmbidStart = normalizedProjects.indexOf('title: "llmbid.lol"');
-const llmbidEnd = normalizedProjects.indexOf('title: "wpdbot"', llmbidStart);
+const llmbidEnd = normalizedProjects.indexOf('title: "VouchIt"', llmbidStart);
 const llmbidProject = normalizedProjects.slice(llmbidStart, llmbidEnd);
+const vouchitProject = normalizedProjects.slice(llmbidEnd, normalizedProjects.indexOf('title: "ApartCheck"', llmbidEnd));
 
 test("matches the approved five-project lineup and primary destinations", () => {
   const titles = [...projects.matchAll(/title: "([^"]+)"/g)].map(
@@ -18,16 +19,16 @@ test("matches the approved five-project lineup and primary destinations", () => 
   ].map(([, href]) => href);
 
   assert.deepEqual(titles, [
+    "llmbid.lol",
     "VouchIt",
     "ApartCheck",
-    "llmbid.lol",
     "wpdbot",
     "Google Classroom Auto File Downloader",
   ]);
   assert.deepEqual(primaryDestinations, [
+    "https://llmbid.lol/",
     "https://vouchit-xi.vercel.app/",
     "https://apartcheck-heykay-47.onrender.com",
-    "https://llmbid.lol/",
     "https://github.com/heykay-47/wpdbot",
     "https://github.com/heykay-47/google-classroom-downloader",
   ]);
@@ -42,6 +43,7 @@ test("matches the approved five-project lineup and primary destinations", () => 
 
 test("uses the supplied project screenshots", () => {
   for (const image of [
+    "/projects/llmbid_headerPage.png",
     "/projects/vouchit_headerPage.png",
     "/projects/apartcheck_headerPage.png",
     "/projects/wpdbot_dashboard.png",
@@ -66,13 +68,17 @@ test("keeps VouchIt's stack and project links aligned with its README", () => {
   assert.match(projects, /email\/password authentication with JWT httpOnly cookies/);
   assert.match(projects, /type: "Live",\s*href: "https:\/\/vouchit-xi\.vercel\.app\/"/);
   assert.match(projects, /type: "Source",\s*href: "https:\/\/github\.com\/heykay-47\/vouchit"/);
-  assert.doesNotMatch(projects, /PostgreSQL|Supabase|Google OAuth|payment processor/);
+  assert.doesNotMatch(vouchitProject, /PostgreSQL|Supabase|Google OAuth|payment processor/);
 });
 
-test("shows llmbid.lol as a live project without fabricated media or source", () => {
+test("shows llmbid.lol with its live link, supplied image, and verified stack", () => {
   assert.match(
     llmbidProject,
-    /title: "llmbid\.lol".*?href: "https:\/\/llmbid\.lol\/".*?description:.*?links: \[\], image: "", video: ""/,
+    /title: "llmbid\.lol".*?href: "https:\/\/llmbid\.lol\/".*?description:.*?image: "\/projects\/llmbid_headerPage\.png", video: ""/,
   );
+  assert.match(llmbidProject, /50 models through \$1 user bids/);
+  assert.match(llmbidProject, /payment webhooks and limited bids per hour/);
+  assert.match(llmbidProject, /technologies: \["Next\.js", "TypeScript", "PostgreSQL", "Docker", "Dodo Payments"\]/);
+  assert.match(llmbidProject, /type: "Live", href: "https:\/\/llmbid\.lol\/"/);
   assert.doesNotMatch(llmbidProject, /source|model engineering/i);
 });

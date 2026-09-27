@@ -13,11 +13,12 @@ const hackathonsSection = readFileSync(
   "utf8",
 );
 
-test("leads with the approved role and hero actions", () => {
-  assert.match(page, /<h1[^>]*>\s*Full-stack developer building end-to-end web products\s*<\/h1>/);
+test("leads with the personal introduction and hero actions", () => {
+  assert.match(page, /<h1[^>]*>\s*Hi! I&apos;m Krithik\s*<\/h1>/);
+  assert.match(page, /I ship products and features fast, and make sure they work end to end/);
   assert.match(page, /href="#projects"[\s\S]*?View projects/);
   assert.match(page, /href=\{DATA\.contact\.social\.email\.url\}[\s\S]*?Email me/);
-  assert.match(page, /href=\{DATA\.resumeUrl\}[\s\S]*?View resume/);
+  assert.match(page, /<ResumeLink href=\{DATA\.resumeUrl\} \/>/);
   assert.match(resume, /resumeUrl:\s*"https:\/\/drive\.google\.com\/file\/d\/1x-vCV9R8I2daZaYqVVMRaX76fLV7yghA\/view\?usp=sharing"/);
 });
 
@@ -35,13 +36,13 @@ test("orders the homepage sections around project evidence", () => {
 
   assert.ok(sectionStarts.every((index) => index >= 0));
   assert.deepEqual(sectionStarts, [...sectionStarts].sort((a, b) => a - b));
-  assert.match(resume, /summary:[\s\S]*?fourth-year Computer Science student at SASTRA/);
+  assert.match(resume, /summary:[\s\S]*?final year CSE undergrad/);
 });
 
 test("preserves the approved education, student-year, and hackathon decoration", () => {
   assert.match(
     resume,
-    /description: "Full-stack developer building end-to-end web products"/,
+    /description: "I ship products and features fast, and make sure they work end to end"/,
   );
   assert.doesNotMatch(
     resume,
@@ -52,5 +53,8 @@ test("preserves the approved education, student-year, and hackathon decoration",
   assert.doesNotMatch(projectsSection, /I(?:&apos;|')ve worked on a variety of projects/);
   assert.doesNotMatch(hackathonsSection, /I like building things/);
   assert.doesNotMatch(hackathonsSection, /During my time in university/);
-  assert.match(hackathonsSection, /<Heart[\s\S]*fill-red-500/);
+  assert.match(hackathonsSection, /<AnimatedHeart \/>/);
+  const animatedHeart = readFileSync(new URL("../src/components/animated-heart.tsx", import.meta.url), "utf8");
+  assert.match(animatedHeart, /<Heart[\s\S]*fill-red-500/);
+  assert.match(animatedHeart, /whileInView/);
 });

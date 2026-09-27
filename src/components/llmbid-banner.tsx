@@ -1,7 +1,7 @@
 "use client";
 
 import { useMotionPlayback } from "@/components/motion-playback-provider";
-import { cn } from "@/lib/utils";
+import { BorderBeam } from "@/components/magicui/border-beam";
 import { ArrowUpRight } from "lucide-react";
 
 export default function LlmbidBanner() {
@@ -15,12 +15,7 @@ export default function LlmbidBanner() {
       aria-label="Visit llmbid.lol, a $1 LLM popularity leaderboard"
       className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 focus-visible:ring-offset-background"
     >
-      <div
-        className={cn(
-          "llmbid-banner-border rounded-xl p-px",
-          isMotionPaused && "motion-paused",
-        )}
-      >
+      <div className="relative rounded-xl bg-background">
         <div className="relative z-10 flex items-center justify-between gap-4 rounded-[11px] bg-background/95 px-4 py-3.5 sm:px-5">
           <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -42,6 +37,7 @@ export default function LlmbidBanner() {
             />
           </span>
         </div>
+        <BorderBeam paused={isMotionPaused} duration={8} />
       </div>
     </a>
   );
