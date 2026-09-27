@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlickeringGrid } from "@/components/magicui/flickering-grid";
+import MotionAwareFlickeringGrid from "@/components/motion-aware-flickering-grid";
 import { DATA } from "@/data/resume";
 
 export default function ContactSection() {
@@ -8,8 +8,11 @@ export default function ContactSection() {
       <div className="absolute -top-4 border bg-primary z-10 rounded-xl px-4 py-1 left-1/2 -translate-x-1/2">
         <span className="text-background text-sm font-medium">Contact</span>
       </div>
-      <div className="absolute inset-0 top-0 left-0 right-0 h-1/2 rounded-xl overflow-hidden">
-        <FlickeringGrid
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 top-0 left-0 right-0 h-1/2 rounded-xl overflow-hidden"
+      >
+        <MotionAwareFlickeringGrid
           className="h-full w-full"
           squareSize={2}
           gridGap={2}
@@ -27,7 +30,7 @@ export default function ContactSection() {
           Want to chat? Send me an email at{" "}
           <Link
             href={DATA.contact.social.email.url}
-            className="text-blue-500 hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+            className="rounded-sm text-primary underline underline-offset-4 hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {DATA.contact.email}
           </Link>

@@ -1,5 +1,6 @@
 import { Dock, DockIcon } from "@/components/magicui/dock";
 import { ModeToggle } from "@/components/mode-toggle";
+import MotionToggle from "@/components/motion-toggle";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -20,11 +21,12 @@ export default function Navbar() {
               <TooltipTrigger asChild>
                 <a
                   href={item.href}
+                  aria-label={item.label}
                   target={isExternal ? "_blank" : undefined}
                   rel={isExternal ? "noopener noreferrer" : undefined}
                 >
                   <DockIcon className="rounded-3xl cursor-pointer size-full bg-background p-0 text-muted-foreground hover:text-foreground hover:bg-muted backdrop-blur-3xl border border-border transition-colors">
-                    <item.icon className="size-full rounded-sm overflow-hidden object-contain" />
+                    <item.icon aria-hidden="true" className="size-full rounded-sm overflow-hidden object-contain" />
                   </DockIcon>
                 </a>
               </TooltipTrigger>
@@ -53,11 +55,12 @@ export default function Navbar() {
                 <TooltipTrigger asChild>
                   <a
                     href={social.url}
+                    aria-label={name}
                     target={isExternal ? "_blank" : undefined}
                     rel={isExternal ? "noopener noreferrer" : undefined}
                   >
                     <DockIcon className="rounded-3xl cursor-pointer size-full bg-background p-0 text-muted-foreground hover:text-foreground hover:bg-muted backdrop-blur-3xl border border-border transition-colors">
-                      <IconComponent className="size-full rounded-sm overflow-hidden object-contain" />
+                      <IconComponent aria-hidden="true" className="size-full rounded-sm overflow-hidden object-contain" />
                     </DockIcon>
                   </a>
                 </TooltipTrigger>
@@ -91,6 +94,13 @@ export default function Navbar() {
             <TooltipArrow className="fill-primary" />
           </TooltipContent>
         </Tooltip>
+        <Separator
+          orientation="vertical"
+          className="h-2/3 m-auto w-px bg-border"
+        />
+        <DockIcon className="rounded-3xl cursor-pointer size-full bg-background p-0 text-muted-foreground hover:text-foreground hover:bg-muted backdrop-blur-3xl border border-border transition-colors">
+          <MotionToggle className="size-full cursor-pointer" />
+        </DockIcon>
       </Dock>
     </div>
   );

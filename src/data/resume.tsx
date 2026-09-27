@@ -1,5 +1,5 @@
 import { Icons } from "@/components/icons";
-import { HomeIcon, NotebookIcon } from "lucide-react";
+import { ArrowUpRight, HomeIcon, NotebookIcon } from "lucide-react";
 import { makeSimpleIcon } from "@/components/ui/simple-icon";
 import type { ReactNode } from "react";
 import {
@@ -59,12 +59,14 @@ const skillIcons = {
 export const DATA = {
   name: "Krithik Jagajeevan",
   initials: "",
-  url: "https://portfolio.adguardian.me",
+  url: "https://www.krithik.dev/",
   location: "Tamil Nadu, India",
   locationLink: "https://www.google.com/maps/place/Tamil+Nadu,+India",
-  description: "Fourth Year Computer Science and Engineering student from India",
+  description: "Full-stack developer building end-to-end web products",
   summary:
-    "I’m Krithik, a CSE student who likes building things that work, fixing things that don’t, and learning something new along the way. Most of my time goes into coding, exploring tech, participating in hackathons/CTFs, and working on projects that start with “this should be simple” and somehow turn into something genuinely fun.",
+    "I’m a fourth-year Computer Science student at SASTRA. I build web products and explore AI through projects and hackathons.",
+  resumeUrl:
+    "https://drive.google.com/file/d/1x-vCV9R8I2daZaYqVVMRaX76fLV7yghA/view?usp=sharing",
   avatarUrl: "/me/krithik.png",
   skills: [
     { name: "React.js", icon: skillIcons.react },
@@ -170,31 +172,36 @@ export const DATA = {
   projects: [
     {
       title: "VouchIt",
-      href: "https://github.com/heykay-47",
+      href: "https://vouchit-xi.vercel.app/",
       dates: "Voucher Marketplace",
       active: true,
       description:
-        "Built a voucher marketplace using React, PostgreSQL, Supabase, Google OAuth, and Tailwind CSS. Improved backend performance, strengthened per-user data isolation, and built reusable frontend components.",
+        "Built a voucher marketplace with a React and TypeScript frontend, a Vercel serverless API using Express, MongoDB Atlas, and email/password authentication with JWT httpOnly cookies.",
       technologies: [
         "React",
-        "PostgreSQL",
-        "Supabase",
-        "Google OAuth",
-        "Tailwind CSS",
+        "TypeScript",
+        "Express",
+        "MongoDB Atlas",
+        "JWT cookies",
       ],
       links: [
         {
+          type: "Live",
+          href: "https://vouchit-xi.vercel.app/",
+          icon: <ArrowUpRight className="size-3" />,
+        },
+        {
           type: "Source",
-          href: "https://github.com/heykay-47",
+          href: "https://github.com/heykay-47/vouchit",
           icon: <Icons.github className="size-3" />,
         },
       ],
-      image: "",
+      image: "/projects/vouchit_headerPage.png",
       video: "",
     },
     {
       title: "ApartCheck",
-      href: "https://github.com/heykay-47/ApartCheck",
+      href: "https://apartcheck-heykay-47.onrender.com",
       dates: "Asset & Ticket Accountability Ledger",
       active: true,
       description:
@@ -209,12 +216,28 @@ export const DATA = {
       ],
       links: [
         {
+          type: "Live",
+          href: "https://apartcheck-heykay-47.onrender.com",
+          icon: <ArrowUpRight className="size-3" />,
+        },
+        {
           type: "Source",
           href: "https://github.com/heykay-47/ApartCheck",
           icon: <Icons.github className="size-3" />,
         },
       ],
       image: "/projects/apartcheck_headerPage.png",
+      video: "",
+    },
+    {
+      title: "llmbid.lol",
+      href: "https://llmbid.lol/",
+      dates: "Live LLM product",
+      active: true,
+      description: "A $1 LLM popularity leaderboard.",
+      technologies: [],
+      links: [],
+      image: "",
       video: "",
     },
     {
@@ -249,7 +272,7 @@ export const DATA = {
       dates: "Bulk Course Attachment Downloader",
       active: true,
       description:
-        "Built a web app and CLI that bulk-download Google Classroom attachments through the official Classroom and Drive APIs, with Google OAuth, ZIP exports, retries, and document conversion.",
+        "Enhanced fork of Evani Menon’s Google Classroom Downloader. I added safer filename and path handling, atomic downloads, safer Drive exports and PDF conversion, resilient MIME handling, regression tests, an improved web flow, and feature parity between the web app and CLI.",
       technologies: [
         "Python",
         "FastAPI",
@@ -264,6 +287,11 @@ export const DATA = {
           href: "https://github.com/heykay-47/google-classroom-downloader",
           icon: <Icons.github className="size-3" />,
         },
+        {
+          type: "Upstream",
+          href: "https://github.com/evanimenon/google-classroom-downloader",
+          icon: <Icons.github className="size-3" />,
+        },
       ],
       image: "/projects/classroom_dashboard.png",
       video: "",
@@ -274,7 +302,7 @@ export const DATA = {
       title: "R3D4CT CTF 2026",
       dates: "2026",
       location: "Capture The Flag",
-      description: "2nd Place",
+      description: "2nd Place · two-person team",
       image: "/logos/r3d4ct_steam.png",
       links: [] as HackathonLink[],
     },
@@ -282,7 +310,7 @@ export const DATA = {
       title: "HackQuest CTF 2025",
       dates: "2025",
       location: "Capture The Flag",
-      description: "Top 5",
+      description: "Top 5 · two-person team",
       image: "/logos/hackquest.png",
       links: [] as HackathonLink[],
     },
@@ -290,15 +318,17 @@ export const DATA = {
       title: "Breachpoint CTF 2026",
       dates: "2026",
       location: "Capture The Flag",
-      description: "Top 10",
+      description: "Top 10 · two-person team",
       image: "/logos/breachpoint.png",
       links: [] as HackathonLink[],
     },
     {
-      title: "TCS x Amazon AI Hackathon 2026",
+      title: "TCS × Amazon AI Hackathon 2026",
       dates: "2026",
       location: "AI Hackathon",
       description: "Finalist",
+      details:
+        "The team shipped an unnamed AI product. I built the frontend and backend and integrated Amazon Bedrock.",
       image: "/logos/tcsxamz_hackathon.png",
       links: [] as HackathonLink[],
     },

@@ -13,10 +13,35 @@ const hackathonsSection = readFileSync(
   "utf8",
 );
 
-test("applies the annotated copy and icon changes", () => {
+test("leads with the approved role and hero actions", () => {
+  assert.match(page, /<h1[^>]*>\s*Full-stack developer building end-to-end web products\s*<\/h1>/);
+  assert.match(page, /href="#projects"[\s\S]*?View projects/);
+  assert.match(page, /href=\{DATA\.contact\.social\.email\.url\}[\s\S]*?Email me/);
+  assert.match(page, /href=\{DATA\.resumeUrl\}[\s\S]*?View resume/);
+  assert.match(resume, /resumeUrl:\s*"https:\/\/drive\.google\.com\/file\/d\/1x-vCV9R8I2daZaYqVVMRaX76fLV7yghA\/view\?usp=sharing"/);
+});
+
+test("orders the homepage sections around project evidence", () => {
+  const sectionStarts = [
+    '<section id="hero"',
+    '<section id="about"',
+    "<ProjectsSection",
+    '<section id="work"',
+    '<section id="education"',
+    '<section id="skills"',
+    "<HackathonsSection",
+    "<ContactSection",
+  ].map((marker) => page.indexOf(marker));
+
+  assert.ok(sectionStarts.every((index) => index >= 0));
+  assert.deepEqual(sectionStarts, [...sectionStarts].sort((a, b) => a - b));
+  assert.match(resume, /summary:[\s\S]*?fourth-year Computer Science student at SASTRA/);
+});
+
+test("preserves the approved education, student-year, and hackathon decoration", () => {
   assert.match(
     resume,
-    /description: "Fourth Year Computer Science and Engineering student from India"/,
+    /description: "Full-stack developer building end-to-end web products"/,
   );
   assert.doesNotMatch(
     resume,

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
 
-interface FlickeringGridProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface FlickeringGridProps extends React.HTMLAttributes<HTMLDivElement> {
   squareSize?: number
   gridGap?: number
   flickerChance?: number
@@ -13,6 +13,7 @@ interface FlickeringGridProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: number
   className?: string
   maxOpacity?: number
+  paused?: boolean
 }
 
 export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
@@ -24,6 +25,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
   height,
   className,
   maxOpacity = 0.3,
+  paused = false,
   ...props
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -163,7 +165,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    let animationFrameId: number
+    let animationFrameId: number | undefined
     let gridParams: ReturnType<typeof setupCanvas>
 
     const updateCanvasSize = () => {
@@ -177,7 +179,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
     let lastTime = 0
     const animate = (time: number) => {
-      if (!isInView) return
+      if (!isInView || paused) return
 
       const deltaTime = (time - lastTime) / 1000
       lastTime = time
@@ -210,16 +212,18 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
     intersectionObserver.observe(canvas)
 
-    if (isInView) {
+    if (isInView && !paused) {
       animationFrameId = requestAnimationFrame(animate)
     }
 
     return () => {
-      cancelAnimationFrame(animationFrameId)
+      if (animationFrameId !== undefined) {
+        cancelAnimationFrame(animationFrameId)
+      }
       resizeObserver.disconnect()
       intersectionObserver.disconnect()
     }
-  }, [setupCanvas, updateSquares, drawGrid, width, height, isInView])
+  }, [setupCanvas, updateSquares, drawGrid, width, height, isInView, paused])
 
   return (
     <div
@@ -238,4 +242,3 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
     </div>
   )
 }
-

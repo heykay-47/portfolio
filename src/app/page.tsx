@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import BlurFade from "@/components/magicui/blur-fade";
-import BlurFadeText from "@/components/magicui/blur-fade-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { DATA } from "@/data/resume";
 import Link from "next/link";
 import Markdown from "react-markdown";
@@ -20,21 +20,32 @@ export default function Page() {
       <section id="hero" className="space-y-8">
         <LlmbidBanner />
         <div className="mx-auto w-full max-w-2xl space-y-8">
-          <div className="gap-2 gap-y-6 flex flex-col md:flex-row justify-between">
-            <div className="gap-2 flex flex-col order-2 md:order-1">
-              <BlurFadeText
-                delay={BLUR_FADE_DELAY}
-                className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl"
-                yOffset={8}
-                text={`Hi, I'm ${DATA.name.split(" ")[0]}`}
-              />
-              <BlurFadeText
-                className="text-muted-foreground max-w-[600px] md:text-lg lg:text-xl"
-                delay={BLUR_FADE_DELAY}
-                text={DATA.description}
-              />
+          <div className="flex flex-col justify-between gap-x-6 gap-y-6 md:flex-row">
+            <div className="order-1 flex flex-col items-start gap-5 md:flex-1">
+              <BlurFade delay={BLUR_FADE_DELAY}>
+                <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl">
+                  Full-stack developer building end-to-end web products
+                </h1>
+              </BlurFade>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild size="lg">
+                  <Link href="#projects">View projects</Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href={DATA.contact.social.email.url}>Email me</Link>
+                </Button>
+                <Button asChild size="lg" variant="ghost">
+                  <Link
+                    href={DATA.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View resume
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <BlurFade delay={BLUR_FADE_DELAY} className="order-1 md:order-2">
+            <BlurFade delay={BLUR_FADE_DELAY} className="order-2 shrink-0">
               <Avatar className="size-24 md:size-32 border rounded-full shadow-lg ring-4 ring-muted">
                 <AvatarImage alt={DATA.name} src={DATA.avatarUrl} />
                 <AvatarFallback>{DATA.initials}</AvatarFallback>
@@ -57,6 +68,9 @@ export default function Page() {
           </BlurFade>
         </div>
       </section>
+      <BlurFade delay={BLUR_FADE_DELAY * 11}>
+        <ProjectsSection />
+      </BlurFade>
       <section id="work">
         <div className="flex min-h-0 flex-col gap-y-6">
           <BlurFade delay={BLUR_FADE_DELAY * 5}>
@@ -132,16 +146,9 @@ export default function Page() {
           </div>
         </div>
       </section>
-      <section id="projects">
-        <BlurFade delay={BLUR_FADE_DELAY * 11}>
-          <ProjectsSection />
-        </BlurFade>
-      </section>
-      <section id="hackathons">
-        <BlurFade delay={BLUR_FADE_DELAY * 13}>
-          <HackathonsSection />
-        </BlurFade>
-      </section>
+      <BlurFade delay={BLUR_FADE_DELAY * 13}>
+        <HackathonsSection />
+      </BlurFade>
       <section id="contact">
         <BlurFade delay={BLUR_FADE_DELAY * 16}>
           <ContactSection />

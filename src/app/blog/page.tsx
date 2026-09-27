@@ -2,15 +2,20 @@ import BlurFade from "@/components/magicui/blur-fade";
 import { allPosts } from "content-collections";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { DATA } from "@/data/resume";
 import { paginate, normalizePage } from "@/lib/pagination";
 import { ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Blog",
   description: "Thoughts on software development, life, and more.",
+  alternates: {
+    canonical: "/blog",
+  },
   openGraph: {
     title: "Blog",
     description: "Thoughts on software development, life, and more.",
+    url: new URL("/blog", DATA.url).toString(),
   },
   twitter: {
     card: "summary_large_image",
@@ -45,7 +50,8 @@ export default async function BlogPage({
   });
 
   return (
-    <section id="blog">
+    <main>
+      <section id="blog">
       <BlurFade delay={BLUR_FADE_DELAY}>
         <h1 className="text-2xl font-semibold tracking-tight mb-2">Blog <span className="ml-1 bg-card border border-border rounded-md px-2 py-1 text-muted-foreground text-sm">{sortedPosts.length} posts</span></h1>
         <p className="text-sm text-muted-foreground mb-8">
@@ -106,7 +112,10 @@ export default async function BlogPage({
                       Previous
                     </Link>
                   ) : (
-                    <span className="h-8 w-fit px-2 flex items-center justify-center text-sm border border-border rounded-lg opacity-50 cursor-not-allowed">
+                    <span
+                      aria-disabled="true"
+                      className="flex h-8 w-fit cursor-not-allowed select-none items-center justify-center rounded-lg border border-border bg-muted px-2 text-sm text-foreground"
+                    >
                       Previous
                     </span>
                   )}
@@ -118,7 +127,10 @@ export default async function BlogPage({
                       Next
                     </Link>
                   ) : (
-                    <span className="h-8 w-fit px-2 flex items-center justify-center text-sm border border-border rounded-lg opacity-50 cursor-not-allowed">
+                    <span
+                      aria-disabled="true"
+                      className="flex h-8 w-fit cursor-not-allowed select-none items-center justify-center rounded-lg border border-border bg-muted px-2 text-sm text-foreground"
+                    >
                       Next
                     </span>
                   )}
@@ -136,6 +148,7 @@ export default async function BlogPage({
           </div>
         </BlurFade>
       )}
-    </section>
+      </section>
+    </main>
   );
 }

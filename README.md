@@ -9,6 +9,10 @@ Built with next.js, [shadcn/ui](https://ui.shadcn.com/), and [magic ui](https://
 - Responsive for different devices
 - Optimized for Next.js and Vercel
 
+## Motion accessibility
+
+Decorative animations remain enabled when a device requests reduced motion. The fixed navigation dock can pause and resume the continuous banner-border and grid effects; short reveal animations remain active. This is an intentional accessibility exception.
+
 # Getting Started Locally
 
 1. Clone this repository to your local machine:

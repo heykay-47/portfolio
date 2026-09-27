@@ -16,10 +16,12 @@ test("places the llmbid.lol promotion before the portfolio hero content", () => 
   assert.match(banner, /A \$1 LLM popularity leaderboard/);
 });
 
-test("animates the banner border and provides a reduced-motion fallback", () => {
+test("keeps the banner animation enabled by preference and manually pausable", () => {
   assert.match(banner, /llmbid-banner-border/);
   assert.match(styles, /@keyframes llmbid-banner-border-spin/);
   assert.match(styles, /conic-gradient\(/);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(styles, /\.llmbid-banner-border::before[\s\S]*animation: none/);
+  assert.doesNotMatch(styles, /prefers-reduced-motion:\s*reduce/);
+  assert.match(banner, /useMotionPlayback/);
+  assert.match(styles, /\.llmbid-banner-border\.motion-paused::before/);
+  assert.match(styles, /animation-play-state:\s*paused/);
 });

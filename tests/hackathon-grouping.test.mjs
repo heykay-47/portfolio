@@ -6,6 +6,9 @@ const section = readFileSync(
   new URL("../src/components/section/hackathons-section.tsx", import.meta.url),
   "utf8",
 );
+const resume = readFileSync(new URL("../src/data/resume.tsx", import.meta.url), "utf8");
+const projects = resume.slice(resume.indexOf("projects: ["), resume.indexOf("hackathons: ["));
+const hackathons = resume.slice(resume.indexOf("hackathons: ["));
 
 test("hackathons are grouped by year instead of rendering each year per item", () => {
   assert.equal(section.includes("<time"), false, "year should not render as a per-hackathon time label");
@@ -15,4 +18,22 @@ test("hackathons are grouped by year instead of rendering each year per item", (
 test("hackathon placements render as light gold badges", () => {
   assert.match(section, /bg-amber-100/, "placement badge should use light gold background");
   assert.match(section, /text-amber-900/, "placement badge should use readable gold text");
+});
+
+test("attributes the three CTF placements to two-person teams", () => {
+  for (const placement of [
+    "2nd Place · two-person team",
+    "Top 5 · two-person team",
+    "Top 10 · two-person team",
+  ]) {
+    assert.ok(hackathons.includes(placement), `missing team attribution: ${placement}`);
+  }
+});
+
+test("describes the unnamed TCS × Amazon team project and the owner's contribution", () => {
+  assert.match(hackathons, /title: "TCS × Amazon AI Hackathon 2026"/);
+  assert.match(hackathons, /description: "Finalist"/);
+  assert.match(hackathons, /The team shipped an unnamed AI product/);
+  assert.match(hackathons, /I built the frontend and backend and integrated Amazon Bedrock/);
+  assert.doesNotMatch(projects, /unnamed AI product|Amazon Bedrock/);
 });

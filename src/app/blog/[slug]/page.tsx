@@ -37,6 +37,8 @@ export async function generateMetadata({
     return undefined;
   }
 
+  const canonicalUrl = new URL(`/blog/${slug}`, DATA.url).toString();
+
   let {
     title,
     publishedAt: publishedTime,
@@ -47,16 +49,19 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      canonical: `/blog/${slug}`,
+    },
     openGraph: {
       title,
       description,
       type: "article",
       publishedTime,
-      url: `${DATA.url}/blog/${slug}`,
+      url: canonicalUrl,
       ...(image && {
         images: [
           {
-            url: `${DATA.url}${image}`,
+            url: new URL(image, DATA.url).toString(),
           },
         ],
       }),
@@ -66,7 +71,7 @@ export async function generateMetadata({
       title,
       description,
       ...(image && {
-        images: [`${DATA.url}${image}`],
+        images: [new URL(image, DATA.url).toString()],
       }),
     },
   };
@@ -95,6 +100,7 @@ export default async function Blog({
 
   const getSlug = (post: (typeof sortedPosts)[0]) =>
     post._meta.path.replace(/\.mdx$/, "");
+  const articleUrl = new URL(`/blog/${slug}`, DATA.url).toString();
 
   const jsonLdContent = JSON.stringify({
     "@context": "https://schema.org",
@@ -104,9 +110,9 @@ export default async function Blog({
     dateModified: post.publishedAt,
     description: post.summary,
     image: post.image
-      ? `${DATA.url}${post.image}`
-      : `${DATA.url}/blog/${slug}/opengraph-image`,
-    url: `${DATA.url}/blog/${slug}`,
+      ? new URL(post.image, DATA.url).toString()
+      : new URL(`/blog/${slug}/opengraph-image`, DATA.url).toString(),
+    url: articleUrl,
     author: {
       "@type": "Person",
       name: DATA.name,
@@ -114,7 +120,8 @@ export default async function Blog({
   }).replace(/</g, "\\u003c");
 
   return (
-    <section id="blog">
+    <main>
+      <section id="blog">
       <script
         type="application/ld+json"
         suppressHydrationWarning
@@ -188,6 +195,7 @@ export default async function Blog({
           )}
         </div>
       </nav>
-    </section>
+      </section>
+    </main>
   );
 }

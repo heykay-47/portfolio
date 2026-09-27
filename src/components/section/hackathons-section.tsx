@@ -10,7 +10,7 @@ import {
   TimelineConnectItem,
 } from "@/components/timeline";
 
-type Hackathon = (typeof DATA.hackathons)[number];
+type Hackathon = (typeof DATA.hackathons)[number] & { details?: string };
 
 const groupedHackathons = DATA.hackathons.reduce<Record<string, Hackathon[]>>(
   (groups, hackathon) => {
@@ -90,6 +90,11 @@ export default function HackathonsSection() {
                     {hackathon.location && (
                       <p className="text-sm text-muted-foreground">
                         {hackathon.location}
+                      </p>
+                    )}
+                    {hackathon.details && (
+                      <p className="max-w-prose text-sm text-muted-foreground">
+                        {hackathon.details}
                       </p>
                     )}
                     {hackathon.description && (

@@ -34,11 +34,8 @@
   will-change: transform;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .llmbid-banner-border::before {
-    animation: none;
-    opacity: 0;
-  }
+.llmbid-banner-border.motion-paused::before {
+  animation-play-state: paused;
 }
 
 @theme inline {
