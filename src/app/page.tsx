@@ -19,7 +19,9 @@ export default function Page() {
   return (
     <main className="min-h-dvh flex flex-col gap-14 relative">
       <section id="hero" className="space-y-8">
-        <LlmbidBanner />
+        <BlurFade delay={BLUR_FADE_DELAY}>
+          <LlmbidBanner />
+        </BlurFade>
         <div className="mx-auto w-full max-w-2xl space-y-8">
           <div className="flex flex-col justify-between gap-x-6 gap-y-6 md:flex-row">
             <div className="order-1 flex flex-col items-start gap-5 md:flex-1">
@@ -33,15 +35,17 @@ export default function Page() {
                   I ship products and features fast, and make sure they work end to end
                 </p>
               </BlurFade>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button asChild size="lg">
-                  <Link href="#projects">View projects</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline">
-                  <Link href={DATA.contact.social.email.url}>Email me</Link>
-                </Button>
-                <ResumeLink href={DATA.resumeUrl} />
-              </div>
+              <BlurFade delay={BLUR_FADE_DELAY * 3}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button asChild size="lg">
+                    <Link href="#projects">View projects</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href={DATA.contact.social.email.url}>Email me</Link>
+                  </Button>
+                  <ResumeLink href={DATA.resumeUrl} />
+                </div>
+              </BlurFade>
             </div>
             <BlurFade delay={BLUR_FADE_DELAY} className="order-2 shrink-0">
               <Avatar className="size-24 md:size-32 border rounded-full shadow-lg ring-4 ring-muted">
