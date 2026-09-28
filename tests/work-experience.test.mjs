@@ -8,6 +8,7 @@ const workSection = readFileSync(
   new URL("../src/components/section/work-section.tsx", import.meta.url),
   "utf8",
 );
+const styles = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 test("includes the Archimedis Digital internship", () => {
   for (const detail of [
@@ -33,4 +34,24 @@ test("includes the Archimedis Digital internship", () => {
 test("renders work locations and supports an unspecified end date", () => {
   assert.match(workSection, /work\.location/);
   assert.match(workSection, /work\.end \?/);
+});
+
+test("shows one animated expansion hint until either experience is opened", () => {
+  assert.match(workSection, /Click me to expand/);
+  assert.match(workSection, /useInView\(hintRef, \{ once: true \}\)/);
+  assert.match(
+    workSection,
+    /onValueChange=\{\(value\) => \{\s*if \(value\) setHasExpandedWork\(true\);\s*\}\}/,
+  );
+  assert.match(workSection, /!hasExpandedWork &&/);
+  assert.match(workSection, /hintIsInView && "experience-title-hint-arrow"/);
+  assert.match(
+    styles,
+    /\.experience-expand-hint-arrow \{\s*animation: experience-expand-hint-nudge 1\.4s ease-in-out infinite;/,
+  );
+  assert.match(
+    styles,
+    /\.experience-title-hint-arrow \{\s*animation: experience-title-hint-nudge 1\.4s ease-in-out infinite;/,
+  );
+  assert.match(styles, /\.motion-paused \.experience-expand-hint-arrow/);
 });

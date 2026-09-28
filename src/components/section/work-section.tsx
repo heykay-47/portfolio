@@ -1,12 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useInView } from "motion/react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import BlurFade from "@/components/magicui/blur-fade";
+import { useMotionPlayback } from "@/components/motion-playback-provider";
 import { DATA } from "@/data/resume";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,58 +33,106 @@ function LogoImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export default function WorkSection() {
+export default function WorkSection({
+  headingDelay,
+  entriesDelay,
+}: {
+  headingDelay: number;
+  entriesDelay: number;
+}) {
+  const [hasExpandedWork, setHasExpandedWork] = useState(false);
+  const hintRef = useRef<HTMLSpanElement>(null);
+  const hintIsInView = useInView(hintRef, { once: true });
+  const { isMotionPaused } = useMotionPlayback();
+
   return (
-    <Accordion type="single" collapsible className="w-full grid gap-6">
-      {DATA.work.map((work) => (
-        <AccordionItem
-          key={work.company}
-          value={work.company}
-          className="w-full border-b-0 grid gap-2"
+    <div className="flex min-h-0 flex-col gap-y-6">
+      <BlurFade delay={headingDelay}>
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-xl font-bold">Experience</h2>
+          {!hasExpandedWork && (
+            <span
+              ref={hintRef}
+              className={cn(
+                "flex items-center gap-1 text-xs text-muted-foreground",
+                isMotionPaused && "motion-paused",
+              )}
+            >
+              Click me to expand
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "inline-flex size-3.5 shrink-0",
+                  hintIsInView && "experience-expand-hint-arrow",
+                )}
+              >
+                <ChevronDown className="size-3.5" />
+              </span>
+            </span>
+          )}
+        </div>
+      </BlurFade>
+      <BlurFade delay={entriesDelay}>
+        <Accordion
+          type="single"
+          collapsible
+          onValueChange={(value) => {
+            if (value) setHasExpandedWork(true);
+          }}
+          className={cn("w-full grid gap-6", isMotionPaused && "motion-paused")}
         >
-          <AccordionTrigger className="hover:no-underline p-0 cursor-pointer transition-colors rounded-none group [&>svg]:hidden">
-            <div className="flex items-center gap-x-3 justify-between w-full text-left">
-              <div className="flex items-center gap-x-3 flex-1 min-w-0">
-                <LogoImage src={work.logoUrl} alt={work.company} />
-                <div className="flex-1 min-w-0 gap-0.5 flex flex-col">
-                  <div className="font-semibold leading-none flex items-center gap-2">
-                    {work.company}
-                    <span className="relative inline-flex items-center w-3.5 h-3.5">
-                      <ChevronRight
-                        className={cn(
-                          "absolute h-3.5 w-3.5 shrink-0 text-muted-foreground stroke-2 transition-all duration-300 ease-out",
-                          "translate-x-0 opacity-0",
-                          "group-hover:translate-x-1 group-hover:opacity-100",
-                          "group-data-[state=open]:opacity-0 group-data-[state=open]:translate-x-0"
-                        )}
-                      />
-                      <ChevronDown
-                        className={cn(
-                          "absolute h-3.5 w-3.5 shrink-0 text-muted-foreground stroke-2 transition-all duration-200",
-                          "opacity-0 rotate-0",
-                          "group-data-[state=open]:opacity-100 group-data-[state=open]:rotate-180"
-                        )}
-                      />
+          {DATA.work.map((work) => (
+            <AccordionItem
+              key={work.company}
+              value={work.company}
+              className="w-full border-b-0 grid gap-2"
+            >
+              <AccordionTrigger className="hover:no-underline p-0 cursor-pointer transition-colors rounded-none group [&>svg]:hidden">
+                <div className="flex items-center gap-x-3 justify-between w-full text-left">
+                  <div className="flex items-center gap-x-3 flex-1 min-w-0">
+                    <LogoImage src={work.logoUrl} alt={work.company} />
+                    <div className="flex-1 min-w-0 gap-0.5 flex flex-col">
+                      <div className="font-semibold leading-none flex items-center gap-2">
+                        {work.company}
+                        <span className="relative inline-flex items-center w-3.5 h-3.5">
+                          <ChevronRight
+                            className={cn(
+                              "absolute h-3.5 w-3.5 shrink-0 text-muted-foreground stroke-2 transition-all duration-300 ease-out",
+                              !hasExpandedWork
+                                ? cn("opacity-100", hintIsInView && "experience-title-hint-arrow")
+                                : "translate-x-0 opacity-0 group-hover:translate-x-1 group-hover:opacity-100",
+                              "group-data-[state=open]:opacity-0 group-data-[state=open]:translate-x-0"
+                            )}
+                          />
+                          <ChevronDown
+                            className={cn(
+                              "absolute h-3.5 w-3.5 shrink-0 text-muted-foreground stroke-2 transition-all duration-200",
+                              "opacity-0 rotate-0",
+                              "group-data-[state=open]:opacity-100 group-data-[state=open]:rotate-180"
+                            )}
+                          />
+                        </span>
+                      </div>
+                      <div className="font-sans text-sm text-muted-foreground">
+                        {work.title}
+                        {work.location ? ` | ${work.location}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground text-right flex-none">
+                    <span>
+                      {work.start}{work.end ? ` - ${work.end}` : ""}
                     </span>
                   </div>
-                  <div className="font-sans text-sm text-muted-foreground">
-                    {work.title}
-                    {work.location ? ` | ${work.location}` : ""}
-                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground text-right flex-none">
-                <span>
-                  {work.start}{work.end ? ` - ${work.end}` : ""}
-                </span>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="p-0 ml-13 text-xs sm:text-sm text-muted-foreground">
-            {work.description}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+              </AccordionTrigger>
+              <AccordionContent className="p-0 ml-13 text-xs sm:text-sm text-muted-foreground">
+                {work.description}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </BlurFade>
+    </div>
   );
 }

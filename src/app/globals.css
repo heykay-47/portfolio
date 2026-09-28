@@ -13,6 +13,29 @@
   animation: resume-pdf-float 2.8s ease-in-out infinite;
 }
 
+.experience-expand-hint-arrow {
+  animation: experience-expand-hint-nudge 1.4s ease-in-out infinite;
+}
+
+.experience-title-hint-arrow {
+  animation: experience-title-hint-nudge 1.4s ease-in-out infinite;
+}
+
+.motion-paused .experience-expand-hint-arrow,
+.motion-paused .experience-title-hint-arrow {
+  animation-play-state: paused;
+}
+
+@keyframes experience-expand-hint-nudge {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(4px); }
+}
+
+@keyframes experience-title-hint-nudge {
+  0%, 60%, 100% { transform: translateX(0); }
+  30% { transform: translateX(4px); }
+}
+
 .motion-paused .resume-pdf-float {
   animation-play-state: paused;
 }

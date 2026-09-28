@@ -12,6 +12,7 @@ import WorkSection from "@/components/section/work-section";
 import LlmbidBanner from "@/components/llmbid-banner";
 import ResumeLink from "@/components/resume-link";
 import { ArrowUpRight } from "lucide-react";
+import ArcadeLauncher from "@/components/arcade/arcade-launcher";
 
 const BLUR_FADE_DELAY = 0.04;
 
@@ -74,14 +75,10 @@ export default function Page() {
         <ProjectsSection />
       </BlurFade>
       <section id="work">
-        <div className="flex min-h-0 flex-col gap-y-6">
-          <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <h2 className="text-xl font-bold">Experience</h2>
-          </BlurFade>
-          <BlurFade delay={BLUR_FADE_DELAY * 6}>
-            <WorkSection />
-          </BlurFade>
-        </div>
+        <WorkSection
+          headingDelay={BLUR_FADE_DELAY * 5}
+          entriesDelay={BLUR_FADE_DELAY * 6}
+        />
       </section>
       <section id="education">
         <div className="flex min-h-0 flex-col gap-y-6">
@@ -156,6 +153,12 @@ export default function Page() {
           <ContactSection />
         </BlurFade>
       </section>
+      <ArcadeLauncher content={{
+        projects: DATA.projects.map(({ title, image }) => ({ title, image })),
+        skills: DATA.skills.map(({ name }) => name),
+        experience: DATA.work.map(({ company }) => company),
+        education: DATA.education.map(({ school }) => school),
+      }} />
     </main>
   );
 }

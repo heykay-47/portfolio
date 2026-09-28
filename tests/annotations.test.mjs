@@ -4,6 +4,10 @@ import test from "node:test";
 
 const resume = readFileSync(new URL("../src/data/resume.tsx", import.meta.url), "utf8");
 const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+const workSection = readFileSync(
+  new URL("../src/components/section/work-section.tsx", import.meta.url),
+  "utf8",
+);
 const projectsSection = readFileSync(
   new URL("../src/components/section/projects-section.tsx", import.meta.url),
   "utf8",
@@ -48,7 +52,7 @@ test("preserves the approved education, student-year, and hackathon decoration",
     resume,
     /description: "Third Year Computer Science and Engineering student from India"/,
   );
-  assert.match(page, /<h2 className="text-xl font-bold">Experience<\/h2>/);
+  assert.match(workSection, /<h2 className="text-xl font-bold">Experience<\/h2>/);
   assert.doesNotMatch(page, /Work Experience/);
   assert.doesNotMatch(projectsSection, /I(?:&apos;|')ve worked on a variety of projects/);
   assert.doesNotMatch(hackathonsSection, /I like building things/);
