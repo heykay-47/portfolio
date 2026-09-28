@@ -25,9 +25,53 @@ test("a run advances through three waves before the final craft", () => {
   boss.hp = 1;
   game.bullets.push({ x: boss.x, y: boss.y, vy: -620, hostile: false });
   stepGame(game, 0.001, idle, (event) => events.push(event));
-  assert.equal(game.phase, "won");
+  assert.equal(game.phase, "felled");
   assert.equal(game.score, scoreBeforeBoss + 1000);
-  assert.equal(events.includes("won"), true);
+  assert.equal(events.includes("felled"), true);
+  assert.equal(events.includes("won"), false);
+  for (let i = 0; i < 120; i++) stepGame(game, 0.04, idle, (event) => events.push(event));
+  assert.equal(game.phase, "won");
+  assert.equal(events.filter((event) => event === "won").length, 1);
+});
+
+test("the final craft falls to a focused minute of fire, not an endurance test", () => {
+  const game = createGame(700, 800, content, () => 0.5);
+  game.player.invulnerable = Infinity;
+  for (let i = 0; i < 1360; i++) stepGame(game, 0.04, idle, () => {});
+  const boss = game.enemies.find((enemy) => enemy.kind === "boss");
+  assert.ok(boss.hp <= 16);
+  game.player.power = 9;
+  for (let i = 0; i < 8; i++) {
+    game.bullets.push({ x: boss.x, y: boss.y, vy: -820, hostile: false });
+    stepGame(game, 0.001, idle, () => {});
+  }
+  assert.equal(game.phase, "felled");
+});
+
+test("new powerups repair the hull, clear the sky, and shatter rocks satisfyingly", () => {
+  const game = createGame(700, 800, content, () => 0.5);
+  game.health = 1;
+  game.pickups.push({ x: game.player.x, y: game.player.y, kind: "repair", label: "Docker" });
+  stepGame(game, 0.01, idle, () => {});
+  assert.equal(game.health, 2);
+
+  game.enemies.push({ kind: "asteroid", x: 350, y: 100, radius: 26, hp: 1, vy: 0, drift: 0, age: 0, shot: 9, flash: 0 });
+  game.bullets.push({ x: 350, y: 100, vy: -820, hostile: false });
+  stepGame(game, 0.001, idle, () => {});
+  assert.equal(game.enemies.filter((enemy) => enemy.radius === 12).length, 2);
+  assert.ok(game.rings.length > 0 && game.popups.length > 0 && game.shake > 0);
+
+  game.pickups.push({ x: game.player.x, y: game.player.y, kind: "nova", label: "Docker" });
+  stepGame(game, 0.001, idle, () => {});
+  assert.equal(game.enemies.length, 0);
+});
+
+test("pointer steering closes most of a long gap within a few frames", () => {
+  const game = createGame(700, 800, content, () => 0.5);
+  const target = { x: 100, y: 500 };
+  const start = Math.hypot(target.x - game.player.x, target.y - game.player.y);
+  for (let i = 0; i < 6; i++) stepGame(game, 1 / 60, { ...idle, target }, () => {});
+  assert.ok(Math.hypot(target.x - game.player.x, target.y - game.player.y) < start * 0.2);
 });
 
 test("a pickup scores, upgrades expire, and project motifs are not targets", () => {

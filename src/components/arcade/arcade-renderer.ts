@@ -1,4 +1,4 @@
-import type { Game } from "./arcade-engine";
+import { BOSS_HP, type Game } from "./arcade-engine";
 
 export function drawGame(
   ctx: CanvasRenderingContext2D,
@@ -17,6 +17,11 @@ export function drawGame(
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  if (game.shake > 0) {
+    const amount = game.shake * game.shake * 9;
+    ctx.translate((Math.random() - 0.5) * amount, (Math.random() - 0.5) * amount);
+  }
 
   // The homepage's dividers and timeline become the moving playfield rails.
   const left = Math.max(18, w * 0.12);
@@ -124,8 +129,11 @@ export function drawGame(
   for (const enemy of game.enemies) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
-    ctx.strokeStyle = red;
-    ctx.fillStyle = dark ? "#4b302e" : "#ebd9d5";
+    const felled = enemy.kind === "boss" && enemy.hp <= 0;
+    if (felled) ctx.globalAlpha = 0.45 + Math.random() * 0.5;
+    // A white-hot frame on every hit makes damage legible at a glance.
+    ctx.strokeStyle = enemy.flash > 0 ? fg : red;
+    ctx.fillStyle = enemy.flash > 0 || felled ? (dark ? "#fff4dc" : "#ffffff") : dark ? "#4b302e" : "#ebd9d5";
     ctx.lineWidth = 2;
     if (enemy.kind === "asteroid") {
       ctx.rotate(enemy.age * 0.4);
@@ -171,29 +179,57 @@ export function drawGame(
       for (const x of [-13, 0, 13]) ctx.fillRect(x - 2, 5, 4, 2);
     }
     ctx.restore();
-    if (enemy.kind === "boss") {
+    if (enemy.kind === "boss" && enemy.hp > 0) {
       ctx.fillStyle = line;
       ctx.fillRect(w / 2 - Math.min(w * 0.27, 155), 25, Math.min(w * 0.54, 310), 3);
       ctx.fillStyle = red;
-      ctx.fillRect(w / 2 - Math.min(w * 0.27, 155), 25, Math.min(w * 0.54, 310) * Math.max(0, enemy.hp / 28), 3);
+      ctx.fillRect(w / 2 - Math.min(w * 0.27, 155), 25, Math.min(w * 0.54, 310) * Math.max(0, enemy.hp / BOSS_HP), 3);
     }
   }
 
+  const heavy = player.power > 0;
   for (const bullet of game.bullets) {
     ctx.fillStyle = bullet.hostile ? red : gold;
-    ctx.fillRect(bullet.x - (bullet.hostile ? 3 : 2), bullet.y - 8, bullet.hostile ? 6 : 4, 13);
+    if (bullet.hostile) ctx.fillRect(bullet.x - 3, bullet.y - 8, 6, 13);
+    else ctx.fillRect(bullet.x - (heavy ? 3.5 : 2), bullet.y - 10, heavy ? 7 : 4, heavy ? 18 : 14);
   }
   for (const particle of game.particles) {
     ctx.globalAlpha = Math.min(1, particle.life * 2);
     ctx.fillStyle = particle.color;
-    ctx.fillRect(particle.x, particle.y, 3, 3);
+    ctx.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
   }
+  for (const wave of game.rings) {
+    ctx.globalAlpha = Math.min(1, wave.life * 2.2);
+    ctx.strokeStyle = wave.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.textAlign = "center";
+  ctx.font = "700 12px monospace";
+  for (const label of game.popups) {
+    ctx.globalAlpha = Math.min(1, label.life * 2);
+    ctx.fillStyle = gold;
+    ctx.fillText(label.text.slice(0, 22), label.x, label.y);
+  }
+  ctx.textAlign = "start";
   ctx.globalAlpha = 1;
 
   ctx.save();
   const playerAlpha = player.invulnerable > 0 ? 0.55 + Math.sin(elapsed * 18) * 0.15 : 1;
   ctx.globalAlpha = playerAlpha;
   ctx.translate(player.x, player.y);
+  if (player.magnet > 0) {
+    ctx.strokeStyle = gold;
+    ctx.globalAlpha = 0.25;
+    ctx.setLineDash([3, 6]);
+    ctx.beginPath();
+    ctx.arc(0, 0, 44 + Math.sin(elapsed * 6) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = playerAlpha;
+  }
   if (player.shield > 0) {
     ctx.strokeStyle = gold;
     ctx.globalAlpha = 0.6;
@@ -225,5 +261,6 @@ export function drawGame(
   ctx.fillRect(-2, -14, 4, 13);
   ctx.globalAlpha = 0.55 + Math.sin(elapsed * 24) * 0.2;
   ctx.fillRect(-3, 21, 6, 12);
+  ctx.restore();
   ctx.restore();
 }

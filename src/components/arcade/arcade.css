@@ -1,10 +1,9 @@
-/* The launcher follows the viewport edge; the ordinary motion toggle can park it. */
+/* Glass launcher; motion/react moves it between random viewport-safe spots. */
 .arcade-launcher {
-  --arcade-inset: clamp(12px, calc((100vw - 672px) / 2 - 78px), 116px);
   position: fixed;
   z-index: 40;
-  top: 50dvh;
-  right: var(--arcade-inset);
+  top: 0;
+  left: 0;
   display: flex;
   width: 52px;
   height: 52px;
@@ -12,22 +11,29 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--card);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, white 30%);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.08) 55%),
+    color-mix(in oklab, var(--background) 45%, transparent);
   color: var(--foreground);
-  box-shadow: 0 5px 24px rgb(0 0 0 / 0.09);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 8px 30px rgb(0 0 0 / 0.08),
+    0 0 0 1px rgb(184 135 52 / 0.06);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
   cursor: pointer;
-  animation: arcade-orbit 24s ease-in-out infinite;
+  will-change: transform;
 }
-
-.arcade-launcher:hover,
-.arcade-launcher:focus-visible,
-.arcade-launcher-paused {
-  animation-play-state: paused;
+.dark .arcade-launcher {
+  border-color: rgb(255 255 255 / 0.12);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.02) 55%),
+    color-mix(in oklab, var(--background) 40%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 8px 30px rgb(0 0 0 / 0.35);
 }
-
-.arcade-launcher:hover { border-color: #b88734; }
+.arcade-launcher:hover { border-color: rgb(184 135 52 / 0.55); }
 .arcade-launcher:focus-visible,
 .arcade-overlay button:focus-visible {
   outline: 2px solid #b88734;
@@ -35,15 +41,53 @@
 }
 .arcade-launcher[hidden] { display: none; }
 .arcade-launcher-label { font: 700 9px/1 var(--font-mono), monospace; letter-spacing: 0.13em; }
-
-@keyframes arcade-orbit {
-  0%, 9%, 100% { transform: translate(0, -50%); }
-  22% { transform: translate(0, calc(-50dvh + 76px)); }
-  42% { transform: translate(calc(-100vw + var(--arcade-inset) + var(--arcade-inset) + 52px), calc(-50dvh + 76px)); }
-  50%, 58% { transform: translate(calc(-100vw + var(--arcade-inset) + var(--arcade-inset) + 52px), -50%); }
-  69% { transform: translate(calc(-100vw + var(--arcade-inset) + var(--arcade-inset) + 52px), calc(50dvh - 116px)); }
-  87% { transform: translate(0, calc(50dvh - 116px)); }
+.arcade-launcher-icon { animation: arcade-bob 2.6s ease-in-out infinite; }
+@keyframes arcade-bob {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-2px) rotate(-7deg); }
+  60% { transform: translateY(0) rotate(5deg); }
 }
+
+/* Hyperspace handoff. Clones travel inside a shared perspective; the live page hides under them. */
+body.arcade-warping main,
+body.arcade-warping [data-portfolio-dock] { visibility: hidden; }
+.arcade-warp {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+.arcade-warp-stage {
+  position: absolute;
+  inset: 0;
+  perspective: 700px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+}
+.arcade-warp-stage > * { transform-origin: center; will-change: transform, opacity; backface-visibility: hidden; }
+.arcade-warp-streaks { position: absolute; top: 50%; left: 50%; }
+.arcade-streak {
+  position: absolute;
+  top: -0.5px;
+  left: 0;
+  width: 34vmax;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 70%, transparent));
+  transform-origin: 0 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.arcade-streak-gold { height: 2px; background: linear-gradient(90deg, transparent, #d9a441); }
+.arcade-warp-veil {
+  position: absolute;
+  inset: 0;
+  background: #fafaf9;
+  opacity: 0;
+}
+.dark .arcade-warp-veil { background: #191919; }
 
 body.arcade-active main {
   opacity: 0;
@@ -60,11 +104,9 @@ body.arcade-active [data-portfolio-dock] { visibility: hidden; }
   background: #fafaf9;
   color: #292929;
   font-family: var(--font-sans), sans-serif;
-  animation: arcade-enter 450ms ease-out both;
 }
 .dark .arcade-overlay { background: #191919; color: #e9e7e3; }
 .arcade-overlay.arcade-leaving { animation: arcade-leave 320ms ease-in both; }
-@keyframes arcade-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes arcade-leave { from { opacity: 1; } to { opacity: 0; } }
 
 .arcade-canvas {
@@ -82,32 +124,6 @@ body.arcade-active [data-portfolio-dock] { visibility: hidden; }
   pointer-events: none;
   content: "";
 }
-.arcade-fragment {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  max-width: 95vw;
-  min-height: 24px;
-  padding: 4px;
-  border: 1px solid #b88734;
-  border-radius: 8px;
-  background: #f2efe9;
-  color: #292929;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  pointer-events: none;
-  animation: arcade-fragment-flight 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.dark .arcade-fragment { background: #292721; color: #e9e7e3; }
-.arcade-fragment img { width: 100%; height: 100%; object-fit: cover; }
-@keyframes arcade-fragment-flight {
-  0% { opacity: 1; transform: translate(0, 0) scale(1); }
-  100% { opacity: 0; transform: translate(0, -55vh) scale(0.35) rotate(-8deg); }
-}
-
 .arcade-hud {
   position: absolute;
   z-index: 2;
@@ -236,3 +252,94 @@ body.arcade-active [data-portfolio-dock] { visibility: hidden; }
 }
 
 /* This opt-in game follows the portfolio's explicit manual-pause motion policy. */
+
+.arcade-hud-upgrades { color: #80500f; }
+.dark .arcade-hud-upgrades { color: #e3b65f; }
+
+/* Boss defeated: a slow, ceremonial title card in the site's own type and gold. */
+.arcade-felled {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  pointer-events: none;
+  animation: arcade-felled-out 4.2s linear both;
+}
+.arcade-felled-band {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: clamp(110px, 18vh, 170px);
+  background: linear-gradient(90deg, transparent, rgb(250 250 249 / 0.92) 20%, rgb(250 250 249 / 0.92) 80%, transparent);
+  border-block: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent, rgb(184 135 52 / 0.5), transparent) 1;
+  transform: translateY(-50%);
+  animation: arcade-felled-band 4.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.dark .arcade-felled-band {
+  background: linear-gradient(90deg, transparent, rgb(20 19 17 / 0.9) 20%, rgb(20 19 17 / 0.9) 80%, transparent);
+}
+.arcade-felled-title {
+  position: relative;
+  margin: 0;
+  background: linear-gradient(180deg, #d9a441, #8a5a18);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-size: clamp(30px, 7.5vw, 64px);
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  white-space: nowrap;
+  animation: arcade-felled-title 4.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.dark .arcade-felled-title { background-image: linear-gradient(180deg, #f3d38a, #c28a35); }
+/* The echo swells behind the title, like light catching on the letters. */
+.arcade-felled-title::after {
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  filter: blur(6px);
+  content: attr(data-text);
+  animation: arcade-felled-echo 4.2s ease-out both;
+}
+.arcade-felled-sub {
+  position: relative;
+  margin: 0;
+  color: #68645f;
+  font: 600 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  animation: arcade-felled-sub 4.2s ease-out both;
+}
+.dark .arcade-felled-sub { color: #b8b1a6; }
+@keyframes arcade-felled-band {
+  0%, 8% { opacity: 0; transform: translateY(-50%) scaleY(0.2); }
+  24% { opacity: 1; transform: translateY(-50%) scaleY(1); }
+  100% { opacity: 1; transform: translateY(-50%) scaleY(1); }
+}
+@keyframes arcade-felled-title {
+  0%, 10% { opacity: 0; transform: scale(1.12); filter: blur(10px); letter-spacing: 0.3em; }
+  34% { opacity: 1; transform: scale(1); filter: blur(0); letter-spacing: 0.14em; }
+  100% { opacity: 1; transform: scale(1.03); filter: blur(0); letter-spacing: 0.16em; }
+}
+@keyframes arcade-felled-echo {
+  0%, 30% { opacity: 0; transform: scale(1); }
+  42% { opacity: 0.8; }
+  75%, 100% { opacity: 0; transform: scale(1.22); }
+}
+@keyframes arcade-felled-sub {
+  0%, 30% { opacity: 0; transform: translateY(6px); }
+  45%, 100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes arcade-felled-out {
+  0%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}

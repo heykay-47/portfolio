@@ -2,46 +2,84 @@
 
 import { useMotionPlayback } from "@/components/motion-playback-provider";
 import { Gamepad2 } from "lucide-react";
+import { motion, useAnimationControls } from "motion/react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ArcadeContent } from "./arcade-engine";
-import type { Fragment } from "./arcade-game";
+import ArcadeWarp from "./arcade-warp";
 import "./arcade.css";
 
 const ArcadeGame = dynamic(() => import("./arcade-game"), { ssr: false });
+const loadGame = () => import("./arcade-game");
 
-function visibleFragments(): Fragment[] {
-  const elements = document.querySelectorAll<HTMLElement>(
-    "main h1, main h2, main #hero img, main #hero .firecracker, main #projects img, main #skills span, main #work img, main #education img, main #contact a",
-  );
-  return Array.from(elements)
-    .map((element) => {
-      const rect = element.getBoundingClientRect();
-      const image = element instanceof HTMLImageElement ? element.currentSrc || element.src : undefined;
-      return {
-        x: rect.x, y: rect.y, width: rect.width, height: rect.height,
-        label: element.getAttribute("alt") || element.textContent?.trim().slice(0, 28) || "Portfolio",
-        image,
-      };
-    })
-    .filter((fragment) => fragment.width > 15 && fragment.height > 10 && fragment.y < window.innerHeight && fragment.y + fragment.height > 0)
-    .slice(0, 12);
+const SIZE = 52;
+const CONTENT_WIDTH = 672;
+const DOCK_CLEARANCE = 110;
+
+/** A random spot that never covers the content column on wide screens or the dock. */
+function safeSpot() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const gutter = (width - CONTENT_WIDTH) / 2;
+  const top = 72;
+  const bottom = Math.max(top, height - SIZE - DOCK_CLEARANCE);
+  const y = top + Math.random() * (bottom - top);
+  const right = Math.random() < 0.5;
+  if (gutter >= SIZE + 32) {
+    const x = 16 + Math.random() * (gutter - SIZE - 32);
+    return { x: right ? width - SIZE - x : x, y };
+  }
+  // Narrow screens have no gutters, so hug either edge.
+  return { x: right ? width - SIZE - 12 : 12, y };
 }
+
+type Phase = "idle" | "warping" | "playing";
 
 export default function ArcadeLauncher({ content }: { content: ArcadeContent }) {
   const { isMotionPaused } = useMotionPlayback();
-  const [active, setActive] = useState(false);
-  const [fragments, setFragments] = useState<Fragment[]>([]);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [held, setHeld] = useState(false);
+  const controls = useAnimationControls();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const originalScroll = useRef(0);
   const destination = useRef<"projects" | undefined>(undefined);
+  const active = phase !== "idle";
+
+  useEffect(() => {
+    const place = (spot: { x: number; y: number }, travel: boolean) =>
+      travel
+        ? controls.start({ ...spot, opacity: 1, transition: { type: "spring", stiffness: 26, damping: 9, mass: 1.1 } })
+        : controls.set({ ...spot, opacity: 1 });
+    const width = window.innerWidth;
+    const gutter = (width - CONTENT_WIDTH) / 2;
+    void place({ x: width - SIZE - (gutter >= SIZE + 32 ? Math.min(gutter / 2, 116) : 12), y: window.innerHeight / 2 - SIZE / 2 }, false);
+    const onResize = () => void place(safeSpot(), false);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [controls]);
+
+  useEffect(() => {
+    if (isMotionPaused || held || active) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const hop = () => {
+      timer = setTimeout(() => {
+        void controls.start({ ...safeSpot(), transition: { type: "spring", stiffness: 26, damping: 9, mass: 1.1 } });
+        hop();
+      }, 3800 + Math.random() * 3200);
+    };
+    hop();
+    return () => {
+      clearTimeout(timer);
+      controls.stop();
+    };
+  }, [controls, isMotionPaused, held, active]);
 
   const launch = () => {
     originalScroll.current = window.scrollY;
     destination.current = undefined;
-    setFragments(visibleFragments());
-    setActive(true);
+    void loadGame();
+    setPhase("warping");
   };
 
   useEffect(() => {
@@ -71,27 +109,34 @@ export default function ArcadeLauncher({ content }: { content: ArcadeContent }) 
 
   const exit = useCallback((target?: "projects") => {
     destination.current = target;
-    setActive(false);
+    setPhase("idle");
   }, []);
+  const warped = useCallback(() => setPhase("playing"), []);
 
   return (
     <>
-      <button
+      <motion.button
         ref={buttonRef}
         type="button"
-        className={`arcade-launcher ${isMotionPaused ? "arcade-launcher-paused" : ""}`}
+        className="arcade-launcher"
+        initial={{ opacity: 0 }}
+        animate={controls}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        onHoverStart={() => setHeld(true)}
+        onHoverEnd={() => setHeld(false)}
+        onFocus={() => setHeld(true)}
+        onBlur={() => setHeld(false)}
         onClick={launch}
         aria-label="Play the portfolio arcade game"
         title="Play arcade mode"
         hidden={active}
       >
-        <Gamepad2 size={21} strokeWidth={1.8} aria-hidden="true" />
+        <Gamepad2 className={isMotionPaused ? "" : "arcade-launcher-icon"} size={21} strokeWidth={1.8} aria-hidden="true" />
         <span className="arcade-launcher-label" aria-hidden="true">PLAY</span>
-      </button>
-      {active && createPortal(
-        <ArcadeGame content={content} fragments={fragments} onExit={exit} />,
-        document.body,
-      )}
+      </motion.button>
+      {phase === "warping" && createPortal(<ArcadeWarp onComplete={warped} />, document.body)}
+      {phase === "playing" && createPortal(<ArcadeGame content={content} onExit={exit} />, document.body)}
     </>
   );
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import BlurFade from "@/components/magicui/blur-fade";
@@ -7,20 +6,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createGame, resizeGame, stepGame, type ArcadeContent, type Game, type GameEvent } from "./arcade-engine";
 import { drawGame } from "./arcade-renderer";
 
-export type Fragment = { x: number; y: number; width: number; height: number; label: string; image?: string };
-
-type Stage = "entering" | "ready" | "playing" | "paused" | "won" | "lost" | "leaving";
+type Stage = "ready" | "playing" | "paused" | "won" | "lost" | "leaving";
 
 export default function ArcadeGame({
   content,
-  fragments,
   onExit,
 }: {
   content: ArcadeContent;
-  fragments: Fragment[];
   onExit: (destination?: "projects") => void;
 }) {
-  const [stage, setStage] = useState<Stage>("entering");
+  const [stage, setStage] = useState<Stage>("ready");
   const [sound, setSound] = useState(false);
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => {
@@ -30,6 +25,8 @@ export default function ArcadeGame({
   const bestRef = useRef(best);
   const [health, setHealth] = useState(3);
   const [wave, setWave] = useState(1);
+  const [felled, setFelled] = useState(false);
+  const [upgrades, setUpgrades] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const readyRef = useRef<HTMLButtonElement>(null);
   const gameRef = useRef<Game | null>(null);
@@ -48,9 +45,7 @@ export default function ArcadeGame({
       image.src = project.image;
       imagesRef.current.set(project.image, image);
     }
-    const readyTimer = window.setTimeout(() => setStage("ready"), 850);
     return () => {
-      window.clearTimeout(readyTimer);
       if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
       void audioRef.current?.close();
     };
@@ -97,6 +92,8 @@ export default function ArcadeGame({
     setScore(0);
     setHealth(3);
     setWave(1);
+    setFelled(false);
+    setUpgrades("");
     setStage("playing");
     canvas.focus();
   }, [content]);
@@ -170,6 +167,7 @@ export default function ArcadeGame({
       setScore(game.score);
       setHealth(game.health);
       setWave(game.wave);
+      if (event === "felled") setFelled(true);
       if (event === "won" || event === "lost") {
         updateBest(game.score);
         setStage(event);
@@ -189,6 +187,8 @@ export default function ArcadeGame({
       drawGame(ctx, game, imagesRef.current, dark);
       if (now - lastHud > 250) {
         setScore(game.score);
+        const { player } = game;
+        setUpgrades((["shield", "rapid", "wide", "power", "magnet"] as const).filter((name) => player[name] > 0).join(" · ").toUpperCase());
         lastHud = now;
       }
       frame = requestAnimationFrame(render);
@@ -218,22 +218,13 @@ export default function ArcadeGame({
         onPointerCancel={() => { pointerRef.current = null; }}
       />
 
-      {stage === "entering" && fragments.map((fragment, index) => (
-        <div
-          key={`${fragment.label}-${index}`}
-          className="arcade-fragment"
-          style={{ left: fragment.x, top: fragment.y, width: fragment.width, height: fragment.height, animationDelay: `${index * 35}ms` }}
-        >
-          {fragment.image ? <img src={fragment.image} alt="" /> : <span>{fragment.label}</span>}
-        </div>
-      ))}
-
-      {stage !== "entering" && stage !== "ready" && (
+      {stage !== "ready" && (
         <div className="arcade-hud">
           <div className="arcade-hud-stats">
             <span>WAVE {wave === 4 ? "FINAL" : `${wave}/3`}</span>
             <span>SCORE {score.toString().padStart(5, "0")}</span>
             <span>HULL {"◆".repeat(Math.max(0, health))}{"◇".repeat(3 - Math.max(0, health))}</span>
+            {upgrades && <span className="arcade-hud-upgrades">{upgrades}</span>}
           </div>
           <div className="arcade-hud-actions">
             <button type="button" onClick={() => setSound((enabled) => !enabled)} aria-label={sound ? "Mute game sound" : "Enable game sound"} title={sound ? "Mute" : "Sound"}>
@@ -244,6 +235,14 @@ export default function ArcadeGame({
             </button>
             <button type="button" onClick={() => leave()} aria-label="Exit arcade mode" title="Exit"><X size={18} /></button>
           </div>
+        </div>
+      )}
+
+      {felled && stage === "playing" && (
+        <div className="arcade-felled" role="status">
+          <div className="arcade-felled-band" />
+          <p className="arcade-felled-title" data-text="BOSS DEFEATED">BOSS DEFEATED</p>
+          <p className="arcade-felled-sub">Final craft destroyed · +1000</p>
         </div>
       )}
 
