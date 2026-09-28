@@ -68,7 +68,7 @@ export const DATA = {
   summary:
     "I'm Krithik, final year CSE undergrad who loves building things that work, fixing things that don't, and learning something new along the way. Most of my time goes into coding, exploring tech, participating in hackathons and CTFs, and working on projects that start with “this should be simple” and turn them into something genuinely fun.",
   resumeUrl:
-    "https://drive.google.com/file/d/1x-vCV9R8I2daZaYqVVMRaX76fLV7yghA/view?usp=sharing",
+    "https://drive.google.com/file/d/1g-jddgelD3agQ-EhKK6NWfpSY3ijGBvy/view?usp=drivesdk",
   avatarUrl: "/me/krithik.png",
   skills: [
     { name: "Next.js", icon: skillIcons.next },

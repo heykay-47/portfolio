@@ -19,7 +19,7 @@ test("leads with the personal introduction and hero actions", () => {
   assert.match(page, /href="#projects"[\s\S]*?View projects/);
   assert.match(page, /href=\{DATA\.contact\.social\.email\.url\}[\s\S]*?Email me/);
   assert.match(page, /<ResumeLink href=\{DATA\.resumeUrl\} \/>/);
-  assert.match(resume, /resumeUrl:\s*"https:\/\/drive\.google\.com\/file\/d\/1x-vCV9R8I2daZaYqVVMRaX76fLV7yghA\/view\?usp=sharing"/);
+  assert.match(resume, /resumeUrl:\s*"https:\/\/drive\.google\.com\/file\/d\/1g-jddgelD3agQ-EhKK6NWfpSY3ijGBvy\/view\?usp=drivesdk"/);
 });
 
 test("orders the homepage sections around project evidence", () => {
