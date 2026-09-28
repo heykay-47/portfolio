@@ -1,9 +1,13 @@
 /* Glass launcher; motion/react moves it between random viewport-safe spots. */
-.arcade-launcher {
+.arcade-launcher-wrap {
   position: fixed;
   z-index: 40;
   top: 0;
   left: 0;
+  will-change: transform;
+}
+.arcade-launcher-wrap[hidden] { display: none; }
+.arcade-launcher {
   display: flex;
   width: 52px;
   height: 52px;
@@ -24,7 +28,6 @@
   backdrop-filter: blur(14px) saturate(1.4);
   -webkit-backdrop-filter: blur(14px) saturate(1.4);
   cursor: pointer;
-  will-change: transform;
 }
 .dark .arcade-launcher {
   border-color: rgb(255 255 255 / 0.12);
@@ -39,7 +42,30 @@
   outline: 2px solid #b88734;
   outline-offset: 3px;
 }
-.arcade-launcher[hidden] { display: none; }
+.arcade-launcher-dismiss {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--background) 80%, transparent);
+  color: var(--muted-foreground);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms ease, color 150ms ease;
+}
+/* Always reachable on touch; revealed on hover or keyboard focus elsewhere. */
+.arcade-launcher-wrap:hover .arcade-launcher-dismiss,
+.arcade-launcher-wrap:focus-within .arcade-launcher-dismiss { opacity: 1; }
+@media (hover: none) { .arcade-launcher-dismiss { opacity: 1; } }
+.arcade-launcher-dismiss:hover { color: var(--foreground); }
+.arcade-launcher-dismiss:focus-visible { opacity: 1; outline: 2px solid #b88734; outline-offset: 2px; }
 .arcade-launcher-label { font: 700 9px/1 var(--font-mono), monospace; letter-spacing: 0.13em; }
 .arcade-launcher-icon { animation: arcade-bob 2.6s ease-in-out infinite; }
 @keyframes arcade-bob {

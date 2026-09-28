@@ -1,7 +1,7 @@
 "use client";
 
 import { useMotionPlayback } from "@/components/motion-playback-provider";
-import { Gamepad2 } from "lucide-react";
+import { Gamepad2, X } from "lucide-react";
 import { motion, useAnimationControls } from "motion/react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
@@ -16,6 +16,7 @@ const loadGame = () => import("./arcade-game");
 const SIZE = 52;
 const CONTENT_WIDTH = 672;
 const DOCK_CLEARANCE = 110;
+const DISMISSED_KEY = "portfolio-arcade-dismissed";
 
 /** A random spot that never covers the content column on wide screens or the dock. */
 function safeSpot() {
@@ -40,11 +41,24 @@ export default function ArcadeLauncher({ content }: { content: ArcadeContent }) 
   const { isMotionPaused } = useMotionPlayback();
   const [phase, setPhase] = useState<Phase>("idle");
   const [held, setHeld] = useState(false);
+  // Dismissal lasts for the browser session, so a returning visitor can still find the game.
+  const [dismissed, setDismissed] = useState(false);
   const controls = useAnimationControls();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const originalScroll = useRef(0);
   const destination = useRef<"projects" | undefined>(undefined);
   const active = phase !== "idle";
+
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(DISMISSED_KEY)) setDismissed(true); // eslint-disable-line react-hooks/set-state-in-effect -- storage is client-only
+    } catch { /* Storage is optional. */ }
+  }, []);
+
+  const dismiss = () => {
+    setDismissed(true);
+    try { window.sessionStorage.setItem(DISMISSED_KEY, "1"); } catch { /* Optional. */ }
+  };
 
   useEffect(() => {
     const place = (spot: { x: number; y: number }, travel: boolean) =>
@@ -60,7 +74,7 @@ export default function ArcadeLauncher({ content }: { content: ArcadeContent }) 
   }, [controls]);
 
   useEffect(() => {
-    if (isMotionPaused || held || active) return;
+    if (isMotionPaused || held || active || dismissed) return;
     let timer: ReturnType<typeof setTimeout>;
     const hop = () => {
       timer = setTimeout(() => {
@@ -73,7 +87,7 @@ export default function ArcadeLauncher({ content }: { content: ArcadeContent }) 
       clearTimeout(timer);
       controls.stop();
     };
-  }, [controls, isMotionPaused, held, active]);
+  }, [controls, isMotionPaused, held, active, dismissed]);
 
   const launch = () => {
     originalScroll.current = window.scrollY;
@@ -115,26 +129,35 @@ export default function ArcadeLauncher({ content }: { content: ArcadeContent }) 
 
   return (
     <>
-      <motion.button
-        ref={buttonRef}
-        type="button"
-        className="arcade-launcher"
-        initial={{ opacity: 0 }}
-        animate={controls}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.92 }}
-        onHoverStart={() => setHeld(true)}
-        onHoverEnd={() => setHeld(false)}
-        onFocus={() => setHeld(true)}
-        onBlur={() => setHeld(false)}
-        onClick={launch}
-        aria-label="Play the portfolio arcade game"
-        title="Play arcade mode"
-        hidden={active}
-      >
-        <Gamepad2 className={isMotionPaused ? "" : "arcade-launcher-icon"} size={21} strokeWidth={1.8} aria-hidden="true" />
-        <span className="arcade-launcher-label" aria-hidden="true">PLAY</span>
-      </motion.button>
+      {!dismissed && (
+        <motion.div
+          className="arcade-launcher-wrap"
+          initial={{ opacity: 0 }}
+          animate={controls}
+          onHoverStart={() => setHeld(true)}
+          onHoverEnd={() => setHeld(false)}
+          onFocus={() => setHeld(true)}
+          onBlur={() => setHeld(false)}
+          hidden={active}
+        >
+          <motion.button
+            ref={buttonRef}
+            type="button"
+            className="arcade-launcher"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={launch}
+            aria-label="Play the portfolio arcade game"
+            title="Play arcade mode"
+          >
+            <Gamepad2 className={isMotionPaused ? "" : "arcade-launcher-icon"} size={21} strokeWidth={1.8} aria-hidden="true" />
+            <span className="arcade-launcher-label" aria-hidden="true">PLAY</span>
+          </motion.button>
+          <button type="button" className="arcade-launcher-dismiss" onClick={dismiss} aria-label="Hide the arcade game button" title="Hide">
+            <X size={11} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+        </motion.div>
+      )}
       {phase === "warping" && createPortal(<ArcadeWarp onComplete={warped} />, document.body)}
       {phase === "playing" && createPortal(<ArcadeGame content={content} onExit={exit} />, document.body)}
     </>
