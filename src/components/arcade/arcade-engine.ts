@@ -59,7 +59,13 @@ export type Hazard = {
   drift: number;
 };
 type RoundPattern = "ship" | "interceptor" | "alien" | "debris-lane" | "rail-pulse" | "debris-gate";
-type RoundBeat = { delaySeconds: number; advanceAfterSeconds: number; maxSeconds: number; patterns: RoundPattern[] };
+type RoundBeat = {
+  delaySeconds: number;
+  advanceAfterSeconds: number;
+  maxSeconds: number;
+  patterns: RoundPattern[];
+  reinforcements?: { at: number; pattern: RoundPattern }[];
+};
 type Pickup = {
   x: number;
   y: number;
@@ -90,6 +96,7 @@ export type Game = {
   beatIndex: number;
   beatElapsed: number;
   beatSpawned: boolean;
+  reinforcementIndex: number;
   phase: "waves" | "boss" | "felled" | "won" | "lost";
   score: number;
   health: number;
@@ -116,25 +123,26 @@ export type Game = {
 const ROUND_SECONDS = [45, 50, 55];
 const ROUND_BEATS: RoundBeat[][] = [
   [
-    { delaySeconds: 0.4, advanceAfterSeconds: 7, maxSeconds: 11, patterns: ["ship"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 7, maxSeconds: 11, patterns: ["debris-lane"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 12, maxSeconds: 20, patterns: ["ship", "debris-lane"] },
+    { delaySeconds: 0.4, advanceAfterSeconds: 9, maxSeconds: 12, patterns: ["ship"], reinforcements: [{ at: 3, pattern: "ship" }, { at: 6, pattern: "ship" }] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 9, maxSeconds: 12, patterns: ["debris-lane"] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 16, maxSeconds: 20, patterns: ["ship", "debris-lane"], reinforcements: [{ at: 4, pattern: "ship" }, { at: 8, pattern: "debris-lane" }, { at: 11, pattern: "ship" }] },
   ],
   [
-    { delaySeconds: 0.4, advanceAfterSeconds: 7, maxSeconds: 10, patterns: ["interceptor"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 7, maxSeconds: 10, patterns: ["rail-pulse"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 8, maxSeconds: 14, patterns: ["ship", "rail-pulse"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 8, maxSeconds: 13, patterns: ["interceptor", "rail-pulse"] },
+    { delaySeconds: 0.4, advanceAfterSeconds: 10, maxSeconds: 12, patterns: ["interceptor"], reinforcements: [{ at: 3, pattern: "interceptor" }, { at: 6, pattern: "interceptor" }] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 10, maxSeconds: 12, patterns: ["rail-pulse"], reinforcements: [{ at: 3, pattern: "rail-pulse" }, { at: 6, pattern: "rail-pulse" }, { at: 9, pattern: "rail-pulse" }] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 12, maxSeconds: 14, patterns: ["ship", "rail-pulse"], reinforcements: [{ at: 3, pattern: "ship" }, { at: 6, pattern: "rail-pulse" }, { at: 9, pattern: "ship" }] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 11, maxSeconds: 13, patterns: ["interceptor", "rail-pulse"], reinforcements: [{ at: 3, pattern: "interceptor" }, { at: 6, pattern: "rail-pulse" }, { at: 8, pattern: "interceptor" }] },
   ],
   [
-    { delaySeconds: 0.4, advanceAfterSeconds: 8, maxSeconds: 12, patterns: ["debris-gate"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 9, maxSeconds: 15, patterns: ["ship", "debris-gate"] },
-    { delaySeconds: 0.6, advanceAfterSeconds: 10, maxSeconds: 13, patterns: ["alien", "debris-gate"] },
+    { delaySeconds: 0.4, advanceAfterSeconds: 10, maxSeconds: 14, patterns: ["debris-gate"] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 12, maxSeconds: 17, patterns: ["ship", "debris-gate"], reinforcements: [{ at: 4, pattern: "ship" }, { at: 8, pattern: "ship" }, { at: 10, pattern: "debris-gate" }] },
+    { delaySeconds: 0.6, advanceAfterSeconds: 14, maxSeconds: 20, patterns: ["alien", "debris-gate"], reinforcements: [{ at: 4, pattern: "alien" }, { at: 8, pattern: "alien" }, { at: 10, pattern: "debris-gate" }] },
   ],
 ];
 const INTERMISSION_SECONDS = 4;
 const BOSS_ATTACK_CLEARANCE = 0.1;
 const BOSS_RECOVERY_SECONDS = 1.7;
+const BOSS_HULL_DAMAGE_MULTIPLIER = 0.48;
 const BOSS_PHASE_TWO_ATTACK_SECONDS = 3.5;
 const BOSS_PHASE_TWO_WARNING_REMAINING = 2.4;
 const BOSS_PHASE_TWO_WARNING_SECONDS = 0.55;
@@ -164,6 +172,7 @@ export function createGame(
     beatIndex: 0,
     beatElapsed: 0,
     beatSpawned: false,
+    reinforcementIndex: 0,
     phase: "waves",
     score: 0,
     health: 3,
@@ -306,6 +315,13 @@ function playRoundPattern(game: Game, kind: RoundPattern) {
   else spawnEnemy(game, kind);
 }
 
+function reinforceRoundPattern(game: Game, kind: RoundPattern) {
+  if (kind === "debris-lane" && game.enemies.some((enemy) => enemy.kind === "asteroid")) return;
+  if ((kind === "debris-gate" || kind === "rail-pulse") && game.hazards.some((hazard) => hazard.kind === kind)) return;
+  if ((kind === "ship" || kind === "interceptor" || kind === "alien") && game.enemies.filter((enemy) => enemy.kind !== "asteroid").length >= 2) return;
+  playRoundPattern(game, kind);
+}
+
 function clearRoundThreats(game: Game) {
   game.enemies = [];
   game.bullets = [];
@@ -321,6 +337,7 @@ function advanceRoundBeat(game: Game, onEvent: (event: GameEvent) => void) {
   game.beatIndex += 1;
   game.beatElapsed = 0;
   game.beatSpawned = false;
+  game.reinforcementIndex = 0;
 }
 
 function spawnPickup(game: Game) {
@@ -415,6 +432,11 @@ export function stepGame(game: Game, dt: number, input: GameInput, onEvent: (eve
         game.beatSpawned = true;
         game.beatElapsed = 0;
       } else if (beat && game.beatSpawned) {
+        const reinforcements = beat.reinforcements ?? [];
+        while (game.reinforcementIndex < reinforcements.length && game.beatElapsed >= reinforcements[game.reinforcementIndex].at) {
+          reinforceRoundPattern(game, reinforcements[game.reinforcementIndex].pattern);
+          game.reinforcementIndex += 1;
+        }
         const threatsRemain = game.enemies.length > 0 || game.bullets.some((bullet) => bullet.hostile) || game.hazards.length > 0;
         if (game.beatElapsed >= beat.advanceAfterSeconds && !threatsRemain) {
           advanceRoundBeat(game, onEvent);
@@ -608,6 +630,7 @@ function advanceRound(game: Game, onEvent: (event: GameEvent) => void) {
     game.beatIndex = 0;
     game.beatElapsed = 0;
     game.beatSpawned = false;
+    game.reinforcementIndex = 0;
     game.roundState = "active";
     onEvent("wave");
     return;
@@ -842,7 +865,7 @@ function damageEnemy(game: Game, enemy: Enemy, damage: number, onEvent: (event: 
     const fight = game.bossFight;
     if (!fight || fight.mode === "intro" || fight.mode === "transition") return;
     const threshold = bossThreshold(fight.phase);
-    const appliedDamage = fight.coreOpen ? damage * 2 : damage >= 10 ? damage : damage * 0.22;
+    const appliedDamage = fight.coreOpen ? damage * 2 : damage >= 10 ? damage : damage * BOSS_HULL_DAMAGE_MULTIPLIER;
     const nextHp = enemy.hp - appliedDamage;
     if (fight.phase < 3 && nextHp <= threshold) {
       enemy.hp = threshold;

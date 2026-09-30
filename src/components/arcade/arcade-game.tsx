@@ -3,6 +3,7 @@
 import BlurFade from "@/components/magicui/blur-fade";
 import { Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArcadeAudio, type AudioSettings, type AudioStatus } from "./arcade-audio";
 import { createGame, resizeGame, stepGame, type ArcadeContent, type Game, type GameEvent } from "./arcade-engine";
 import { drawGame } from "./arcade-renderer";
 
@@ -16,7 +17,8 @@ export default function ArcadeGame({
   onExit: (destination?: "projects") => void;
 }) {
   const [stage, setStage] = useState<Stage>("ready");
-  const [sound, setSound] = useState(false);
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>({ enabled: false, music: true, effects: true, volume: 0.4 });
+  const [audioStatus, setAudioStatus] = useState<AudioStatus>("idle");
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => {
     try { return Number(window.localStorage.getItem("portfolio-arcade-best-v1")) || 0; }
@@ -37,7 +39,7 @@ export default function ArcadeGame({
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const touchRef = useRef(false);
   const imagesRef = useRef(new Map<string, HTMLImageElement>());
-  const audioRef = useRef<AudioContext | null>(null);
+  const audioRef = useRef<ArcadeAudio | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -50,9 +52,13 @@ export default function ArcadeGame({
     }
     return () => {
       if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
-      void audioRef.current?.close();
     };
   }, [content.projects]);
+
+  useEffect(() => () => {
+    void audioRef.current?.dispose();
+    audioRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (stage === "ready" || stage === "paused" || stage === "won" || stage === "lost") {
@@ -63,26 +69,29 @@ export default function ArcadeGame({
     previousStageRef.current = stage;
   }, [stage]);
 
-  const playSound = useCallback((event: GameEvent) => {
-    if (!sound || event === "wave") return;
-    try {
-      const audio = audioRef.current ?? new AudioContext();
-      audioRef.current = audio;
-      if (audio.state === "suspended") void audio.resume();
-      const oscillator = audio.createOscillator();
-      const gain = audio.createGain();
-      const now = audio.currentTime;
-      const frequency = event === "pickup" || event === "won" ? 720 : event === "hit" || event === "lost" ? 170 : 320;
-      oscillator.type = "triangle";
-      oscillator.frequency.setValueAtTime(frequency, now);
-      oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, frequency * (event === "hit" ? 0.45 : 1.3)), now + 0.13);
-      gain.gain.setValueAtTime(0.035, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-      oscillator.connect(gain).connect(audio.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.17);
-    } catch { /* Audio is an optional enhancement. */ }
-  }, [sound]);
+  const getAudio = useCallback(() => {
+    if (!audioRef.current) audioRef.current = new ArcadeAudio(setAudioStatus);
+    return audioRef.current;
+  }, []);
+
+  const configureAudio = (change: Partial<AudioSettings>) => {
+    const next = { ...audioSettings, ...change };
+    setAudioSettings(next);
+    const audio = getAudio();
+    audio.configure(next);
+    if (stage === "playing" && next.enabled) void audio.unlock();
+  };
+
+  const pause = useCallback(() => {
+    audioRef.current?.pause();
+    setStage("paused");
+  }, []);
+
+  const resume = useCallback(() => {
+    audioRef.current?.resume();
+    void audioRef.current?.unlock();
+    setStage("playing");
+  }, []);
 
   const updateBest = useCallback((value: number) => {
     if (value <= bestRef.current) return;
@@ -104,12 +113,17 @@ export default function ArcadeGame({
     setAnnouncement("Round 1 begins");
     setFelled(false);
     setUpgrades("");
+    const audio = getAudio();
+    audio.configure(audioSettings);
+    audio.start();
+    void audio.unlock();
     setStage("playing");
     canvas.focus();
-  }, [content]);
+  }, [content, getAudio, audioSettings]);
 
   const leave = useCallback((destination?: "projects") => {
     if (exitTimerRef.current) return;
+    audioRef.current?.stop();
     setStage("leaving");
     exitTimerRef.current = setTimeout(() => onExit(destination), 320);
   }, [onExit]);
@@ -121,8 +135,8 @@ export default function ArcadeGame({
       }
       if (event.code === "Escape") {
         event.preventDefault();
-        if (stage === "playing") setStage("paused");
-        else if (stage === "paused") setStage("playing");
+        if (stage === "playing") pause();
+        else if (stage === "paused") resume();
         else if (stage !== "leaving") leave();
       }
       keysRef.current.add(event.code);
@@ -131,7 +145,7 @@ export default function ArcadeGame({
     const onBlur = () => {
       keysRef.current.clear();
       pointerRef.current = null;
-      if (stage === "playing") setStage("paused");
+      if (stage === "playing") pause();
     };
     const onVisibility = () => {
       if (document.hidden) onBlur();
@@ -146,7 +160,7 @@ export default function ArcadeGame({
       window.removeEventListener("blur", onBlur);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [stage, leave]);
+  }, [stage, leave, pause, resume]);
 
   useEffect(() => {
     if (stage !== "playing") return;
@@ -173,7 +187,7 @@ export default function ArcadeGame({
     const onEvent = (event: GameEvent) => {
       const game = gameRef.current;
       if (!game) return;
-      playSound(event);
+      audioRef.current?.playEffect(event);
       setScore(game.score);
       setHealth(game.health);
       setWave(game.wave);
@@ -181,6 +195,7 @@ export default function ArcadeGame({
       if (event === "wave") {
         if (game.wave === 4) {
           setBossPhase(1);
+          audioRef.current?.setTrack("boss");
           setAnnouncement("Final craft incoming");
         } else setAnnouncement(`Round ${game.wave} begins`);
       }
@@ -191,6 +206,7 @@ export default function ArcadeGame({
       if (event === "felled") setFelled(true);
       if (event === "won" || event === "lost") {
         updateBest(game.score);
+        audioRef.current?.stop();
         setStage(event);
       }
     };
@@ -219,7 +235,7 @@ export default function ArcadeGame({
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", fit);
     };
-  }, [stage, playSound, updateBest]);
+  }, [stage, updateBest]);
 
   const point = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -249,15 +265,19 @@ export default function ArcadeGame({
             {upgrades && <span className="arcade-hud-upgrades">{upgrades}</span>}
           </div>
           <div className="arcade-hud-actions">
-            <button type="button" onClick={() => setSound((enabled) => !enabled)} aria-label={sound ? "Mute game sound" : "Enable game sound"} title={sound ? "Mute" : "Sound"}>
-              {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            <button type="button" onClick={() => configureAudio({ enabled: !audioSettings.enabled })} aria-label={audioSettings.enabled ? "Mute game audio" : "Unmute game audio"} aria-pressed={audioSettings.enabled} title={audioSettings.enabled ? "Mute" : "Unmute"}>
+              {audioSettings.enabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
             </button>
-            <button type="button" onClick={() => setStage(stage === "playing" ? "paused" : "playing")} disabled={stage === "won" || stage === "lost" || stage === "leaving"} aria-label={stage === "paused" ? "Resume game" : "Pause game"} title={stage === "paused" ? "Resume" : "Pause"}>
+            <button type="button" onClick={stage === "playing" ? pause : resume} disabled={stage === "won" || stage === "lost" || stage === "leaving"} aria-label={stage === "paused" ? "Resume game" : "Pause game"} title={stage === "paused" ? "Resume" : "Pause"}>
               {stage === "paused" ? <Play size={18} /> : <Pause size={18} />}
             </button>
             <button type="button" onClick={() => leave()} aria-label="Exit arcade mode" title="Exit"><X size={18} /></button>
           </div>
         </div>
+      )}
+
+      {stage === "playing" && audioStatus === "error" && audioSettings.enabled && (
+        <div className="arcade-audio-notice" role="status">Audio couldn&apos;t start. <button type="button" onClick={() => void getAudio().unlock()}>Retry audio</button></div>
       )}
 
       {felled && stage === "playing" && (
@@ -278,11 +298,12 @@ export default function ArcadeGame({
                   <h2>Portfolio, in flight.</h2>
                   <p>The page becomes the playfield. Learn each round, collect project and skill upgrades, then take on the final craft.</p>
                   <div className="arcade-instructions"><span>DESKTOP<br /><strong>Move: arrows / WASD<br />Fire: Space · Pause: Esc</strong></span><span>TOUCH<br /><strong>Drag to steer<br />Automatic fire</strong></span></div>
+                  {audioOptions()}
                   <button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Start flight <span aria-hidden="true">↗</span></button>
                   <button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button>
                 </>
               ) : stage === "paused" ? (
-                <><h2>Flight paused.</h2><p>Your run is waiting here.</p><button ref={primaryActionRef} type="button" className="arcade-primary" onClick={() => { setStage("playing"); canvasRef.current?.focus(); }}>Resume flight</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button></>
+                <><h2>Flight paused.</h2><p>Your run is waiting here.</p>{audioOptions()}<button ref={primaryActionRef} type="button" className="arcade-primary" onClick={resume}>Resume flight</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button></>
               ) : (
                 <><h2>{stage === "won" ? "Sky cleared." : "Flight over."}</h2><p>{stage === "won" ? "You made it through the portfolio." : "The next run starts whenever you do."}</p><div className="arcade-result"><span>YOUR SCORE <strong>{score}</strong></span><span>PERSONAL BEST <strong>{best}</strong></span></div><button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Play again</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button><button type="button" className="arcade-text-button" onClick={() => leave("projects")}>Explore projects ↗</button></>
               )}
@@ -292,4 +313,21 @@ export default function ArcadeGame({
       )}
     </div>
   );
+
+  function audioOptions() {
+    return (
+      <fieldset className="arcade-audio-options">
+        <legend>Game audio</legend>
+        <label><input type="checkbox" checked={audioSettings.enabled} onChange={(event) => configureAudio({ enabled: event.target.checked })} />Enable game audio</label>
+        <div className="arcade-audio-choices">
+          <label><input type="checkbox" checked={audioSettings.music} onChange={(event) => configureAudio({ music: event.target.checked })} />Music</label>
+          <label><input type="checkbox" checked={audioSettings.effects} onChange={(event) => configureAudio({ effects: event.target.checked })} />Effects</label>
+        </div>
+        <label className="arcade-audio-level">Music level <input type="range" min="0" max="100" step="5" value={Math.round(audioSettings.volume * 100)} disabled={!audioSettings.music} onChange={(event) => configureAudio({ volume: Number(event.target.value) / 100 })} /><span>{Math.round(audioSettings.volume * 100)}%</span></label>
+        <p>{stage === "paused" ? "Audio resumes with your flight. Mute stays muted." : "Off until enabled. Music starts with your flight."}</p>
+        {audioStatus === "error" && <p role="status">Audio couldn&apos;t start. Resume to retry, or play muted.</p>}
+        <details><summary>Soundtrack credits</summary><p>Rail Forge and Core Breach. Original, sample-free industrial-metal loops made for this portfolio. <a href="/audio/arcade/CREDITS.md" target="_blank" rel="noreferrer">CC0 reuse terms and source notes</a>.</p></details>
+      </fieldset>
+    );
+  }
 }

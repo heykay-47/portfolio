@@ -14,6 +14,17 @@ const stepFor = (game, seconds, input = idle, onEvent = () => {}) => {
   for (let i = 0; i < frames; i++) stepGame(game, Math.min(0.04, seconds - i * 0.04), input, onEvent);
 };
 
+test("authored reinforcements keep the round active without unbounded enemy pressure", () => {
+  const game = createGame(390, 844, content, () => 0.5);
+  game.player.invulnerable = Infinity;
+  stepFor(game, 1);
+  game.enemies = [];
+  stepFor(game, 3.1);
+  assert.ok(game.enemies.some((enemy) => enemy.kind === "ship"));
+  stepFor(game, 2.6);
+  assert.ok(game.enemies.filter((enemy) => enemy.kind === "ship").length <= 2);
+});
+
 test("round one advances from a cleared ship to a debris lane, then their combination", () => {
   const game = createGame(700, 800, content, () => 0.5);
   game.player.invulnerable = Infinity;
@@ -26,7 +37,11 @@ test("round one advances from a cleared ship to a debris lane, then their combin
   game.bullets = [];
   stepFor(game, 5.9);
   assert.equal(game.beatIndex, 0);
-  stepFor(game, 0.6);
+  for (let i = 0; i < 200 && game.beatIndex === 0; i++) {
+    game.enemies = [];
+    game.bullets = [];
+    stepGame(game, 0.04, idle, () => {});
+  }
   assert.equal(game.beatIndex, 1);
   stepFor(game, 0.7);
   assert.ok(game.enemies.some((enemy) => enemy.kind === "asteroid"));
@@ -34,7 +49,7 @@ test("round one advances from a cleared ship to a debris lane, then their combin
 
   game.enemies = [];
   game.bullets = [];
-  stepFor(game, 8);
+  stepFor(game, 9.7);
   assert.ok(game.enemies.some((enemy) => enemy.kind === "ship"));
   assert.ok(game.enemies.some((enemy) => enemy.kind === "asteroid"));
 });
@@ -76,7 +91,7 @@ test("an uncleared beat is cleared and advances at its own hard timeout", () => 
   ship.y = 300;
   ship.vy = 0;
   ship.shot = 99;
-  stepFor(game, 10.6);
+  stepFor(game, 11.6);
   assert.equal(game.beatIndex, 1);
   assert.equal(game.enemies.length, 0);
   assert.equal(game.bullets.length, 0);
@@ -120,7 +135,12 @@ test("round two introduces a warned interceptor and rail pulse after round one",
 
   game.enemies = [];
   game.bullets = [];
-  stepFor(game, 5.9);
+  for (let i = 0; i < 300 && game.beatIndex === 0; i++) {
+    game.enemies = [];
+    game.bullets = [];
+    stepGame(game, 0.04, idle, () => {});
+  }
+  stepFor(game, 0.7);
   assert.ok(game.hazards.some((hazard) => hazard.kind === "rail-pulse" && hazard.warningFor > 0));
 });
 
@@ -154,7 +174,7 @@ test("round three teaches the gate before combining it with a ship and then the 
   assert.ok(game.hazards[0].gapWidth >= 92);
 
   game.hazards = [];
-  game.beatElapsed = 8;
+  game.beatElapsed = 10;
   stepGame(game, 0.04, idle, () => {});
   stepFor(game, 0.7);
   assert.ok(game.enemies.some((enemy) => enemy.kind === "ship"));
@@ -164,8 +184,12 @@ test("round three teaches the gate before combining it with a ship and then the 
   game.enemies = [];
   game.bullets = [];
   game.hazards = [];
-  game.beatElapsed = 9;
-  stepGame(game, 0.04, idle, () => {});
+  for (let i = 0; i < 400 && game.beatIndex === 1; i++) {
+    game.enemies = [];
+    game.bullets = [];
+    game.hazards = [];
+    stepGame(game, 0.04, idle, () => {});
+  }
   stepFor(game, 0.7);
   assert.ok(game.enemies.some((enemy) => enemy.kind === "alien"));
   assert.ok(game.hazards.some((hazard) => hazard.kind === "debris-gate"));
@@ -327,7 +351,7 @@ test("the three authored rounds lead into a boss with a readable first attack", 
   assert.equal(game.bossFight.counterWindowSeen, true);
 });
 
-test("a centered continuous-fire run defeats the boss within its tuning budget", () => {
+test("an unpowered centered continuous-fire run defeats the boss within its tuning budget", () => {
   const game = createGame(700, 800, content, () => 0.5);
   game.player.invulnerable = Infinity;
   const started = { at: 0 };
@@ -335,7 +359,13 @@ test("a centered continuous-fire run defeats the boss within its tuning budget",
   const bossPhases = [];
   for (let i = 0; i < 10_000 && defeatedAt === undefined; i++) {
     stepGame(game, 0.04, { ...idle, firing: true }, (event) => {
-      if (event === "wave" && game.wave === 4) started.at = game.elapsed;
+      if (event === "wave" && game.wave === 4) {
+        started.at = game.elapsed;
+        game.pickups = [];
+        game.player.rapid = 0;
+        game.player.wide = 0;
+        game.player.power = 0;
+      }
       if (event === "boss-phase") bossPhases.push(game.bossFight.phase);
       if (event === "felled") defeatedAt = game.elapsed;
     });
@@ -389,7 +419,7 @@ test("nova earns the exposed-core bonus without skipping a boss health segment",
   assert.equal(open.fight.phase, 1);
 });
 
-test("the exposed core doubles ordinary chip damage", () => {
+test("the exposed core rewards an ordinary shot with double base damage", () => {
   const damageBoss = (coreOpen) => {
     const game = createGame(700, 800, content, () => 0.5);
     game.player.invulnerable = Infinity;
@@ -403,7 +433,7 @@ test("the exposed core doubles ordinary chip damage", () => {
     return boss.hp;
   };
 
-  assert.ok(Math.abs(damageBoss(false) - (BOSS_HP - 0.22)) < 1e-9);
+  assert.ok(Math.abs(damageBoss(false) - (BOSS_HP - 0.48)) < 1e-9);
   assert.equal(damageBoss(true), BOSS_HP - 2);
 });
 
