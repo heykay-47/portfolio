@@ -25,10 +25,13 @@ export default function ArcadeGame({
   const bestRef = useRef(best);
   const [health, setHealth] = useState(3);
   const [wave, setWave] = useState(1);
+  const [bossPhase, setBossPhase] = useState(1);
+  const [announcement, setAnnouncement] = useState("Ready");
   const [felled, setFelled] = useState(false);
   const [upgrades, setUpgrades] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const readyRef = useRef<HTMLButtonElement>(null);
+  const primaryActionRef = useRef<HTMLButtonElement>(null);
+  const previousStageRef = useRef<Stage>("ready");
   const gameRef = useRef<Game | null>(null);
   const keysRef = useRef(new Set<string>());
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
@@ -52,7 +55,12 @@ export default function ArcadeGame({
   }, [content.projects]);
 
   useEffect(() => {
-    if (stage === "ready") readyRef.current?.focus();
+    if (stage === "ready" || stage === "paused" || stage === "won" || stage === "lost") {
+      primaryActionRef.current?.focus();
+    } else if (stage === "playing" && previousStageRef.current === "paused") {
+      canvasRef.current?.focus();
+    }
+    previousStageRef.current = stage;
   }, [stage]);
 
   const playSound = useCallback((event: GameEvent) => {
@@ -92,6 +100,8 @@ export default function ArcadeGame({
     setScore(0);
     setHealth(3);
     setWave(1);
+    setBossPhase(1);
+    setAnnouncement("Round 1 begins");
     setFelled(false);
     setUpgrades("");
     setStage("playing");
@@ -167,6 +177,17 @@ export default function ArcadeGame({
       setScore(game.score);
       setHealth(game.health);
       setWave(game.wave);
+      if (event === "intermission") setAnnouncement(`Round ${game.wave} clear. Recovery pickup available.`);
+      if (event === "wave") {
+        if (game.wave === 4) {
+          setBossPhase(1);
+          setAnnouncement("Final craft incoming");
+        } else setAnnouncement(`Round ${game.wave} begins`);
+      }
+      if (event === "boss-phase" && game.bossFight) {
+        setBossPhase(game.bossFight.phase);
+        setAnnouncement(`Boss phase ${game.bossFight.phase}`);
+      }
       if (event === "felled") setFelled(true);
       if (event === "won" || event === "lost") {
         updateBest(game.score);
@@ -217,11 +238,12 @@ export default function ArcadeGame({
         onPointerUp={() => { pointerRef.current = null; }}
         onPointerCancel={() => { pointerRef.current = null; }}
       />
+      <span className="sr-only" role="status" aria-live="polite">{announcement}</span>
 
       {stage !== "ready" && (
         <div className="arcade-hud">
           <div className="arcade-hud-stats">
-            <span>WAVE {wave === 4 ? "FINAL" : `${wave}/3`}</span>
+            <span>{wave === 4 ? `BOSS ${bossPhase}/3` : `ROUND ${wave}/3`}</span>
             <span>SCORE {score.toString().padStart(5, "0")}</span>
             <span>HULL {"◆".repeat(Math.max(0, health))}{"◇".repeat(3 - Math.max(0, health))}</span>
             {upgrades && <span className="arcade-hud-upgrades">{upgrades}</span>}
@@ -254,15 +276,15 @@ export default function ArcadeGame({
               {stage === "ready" ? (
                 <>
                   <h2>Portfolio, in flight.</h2>
-                  <p>The page becomes the playfield. Collect projects and skill upgrades. Clear three waves and the final craft.</p>
+                  <p>The page becomes the playfield. Learn each round, collect project and skill upgrades, then take on the final craft.</p>
                   <div className="arcade-instructions"><span>DESKTOP<br /><strong>Move: arrows / WASD<br />Fire: Space · Pause: Esc</strong></span><span>TOUCH<br /><strong>Drag to steer<br />Automatic fire</strong></span></div>
-                  <button ref={readyRef} type="button" className="arcade-primary" onClick={start}>Start flight <span aria-hidden="true">↗</span></button>
+                  <button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Start flight <span aria-hidden="true">↗</span></button>
                   <button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button>
                 </>
               ) : stage === "paused" ? (
-                <><h2>Flight paused.</h2><p>Your run is waiting here.</p><button type="button" className="arcade-primary" onClick={() => { setStage("playing"); canvasRef.current?.focus(); }}>Resume flight</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button></>
+                <><h2>Flight paused.</h2><p>Your run is waiting here.</p><button ref={primaryActionRef} type="button" className="arcade-primary" onClick={() => { setStage("playing"); canvasRef.current?.focus(); }}>Resume flight</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button></>
               ) : (
-                <><h2>{stage === "won" ? "Sky cleared." : "Flight over."}</h2><p>{stage === "won" ? "You made it through the portfolio." : "The next run starts whenever you do."}</p><div className="arcade-result"><span>YOUR SCORE <strong>{score}</strong></span><span>PERSONAL BEST <strong>{best}</strong></span></div><button type="button" className="arcade-primary" onClick={start}>Play again</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button><button type="button" className="arcade-text-button" onClick={() => leave("projects")}>Explore projects ↗</button></>
+                <><h2>{stage === "won" ? "Sky cleared." : "Flight over."}</h2><p>{stage === "won" ? "You made it through the portfolio." : "The next run starts whenever you do."}</p><div className="arcade-result"><span>YOUR SCORE <strong>{score}</strong></span><span>PERSONAL BEST <strong>{best}</strong></span></div><button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Play again</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button><button type="button" className="arcade-text-button" onClick={() => leave("projects")}>Explore projects ↗</button></>
               )}
             </div>
           </BlurFade>

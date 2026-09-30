@@ -1,4 +1,4 @@
-import { BOSS_HP, type Game } from "./arcade-engine";
+import { aimedShotVector, BOSS_HP, bossFanVectors, type Game } from "./arcade-engine";
 
 export function drawGame(
   ctx: CanvasRenderingContext2D,
@@ -126,7 +126,92 @@ export function drawGame(
     ctx.textAlign = "start";
   }
 
+  for (const hazard of game.hazards) {
+    const warning = hazard.warningFor > 0;
+    ctx.save();
+    ctx.lineWidth = warning ? 2 : 1;
+    ctx.strokeStyle = warning ? gold : red;
+    ctx.fillStyle = warning ? `${gold}24` : `${red}38`;
+    ctx.setLineDash(warning ? [7, 6] : []);
+    if (hazard.kind === "rail-pulse") {
+      const x = hazard.x - hazard.width / 2;
+      ctx.fillRect(x, 0, hazard.width, h);
+      ctx.strokeRect(x, 0, hazard.width, h);
+      ctx.setLineDash([]);
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      ctx.fillStyle = warning ? gold : red;
+      ctx.fillText(warning ? "RAIL CHARGING" : "RAIL ACTIVE", hazard.x, Math.max(92, h * 0.2));
+      ctx.textAlign = "start";
+    } else {
+      const gapLeft = hazard.gapX - hazard.gapWidth / 2;
+      const gapRight = hazard.gapX + hazard.gapWidth / 2;
+      const panelRight = hazard.x + hazard.width;
+      for (const [start, end] of [[hazard.x, gapLeft], [gapRight, panelRight]]) {
+        const panelWidth = Math.max(0, end - start);
+        if (warning) ctx.strokeRect(start, hazard.y - hazard.height / 2, panelWidth, hazard.height);
+        else ctx.fillRect(start, hazard.y - hazard.height / 2, panelWidth, hazard.height);
+        ctx.beginPath();
+        ctx.moveTo(start, hazard.y - hazard.height / 2);
+        ctx.lineTo(end, hazard.y + hazard.height / 2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(hazard.gapX, hazard.y - hazard.height * 0.9);
+      ctx.lineTo(hazard.gapX, hazard.y + hazard.height * 0.9);
+      ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.font = "700 9px monospace";
+      ctx.fillStyle = warning ? gold : red;
+      ctx.fillText(warning ? "GAP MOVING" : "SAFE GAP", hazard.gapX, hazard.y - hazard.height);
+      ctx.textAlign = "start";
+    }
+    ctx.restore();
+  }
+
   for (const enemy of game.enemies) {
+    if (enemy.kind === "interceptor" && enemy.laneX !== undefined && Math.abs(enemy.laneX - enemy.x) > 4) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 6]);
+      ctx.beginPath();
+      ctx.moveTo(enemy.laneX, Math.max(0, enemy.y - 90));
+      ctx.lineTo(enemy.laneX, enemy.y + 90);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(enemy.laneX, enemy.y + 50, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (enemy.warningFor > 0 && enemy.kind !== "boss") {
+      ctx.save();
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 6]);
+      const originY = enemy.y + enemy.radius;
+      const targetY = player.y;
+      const fall = Math.max(0, targetY - originY);
+      const targets = enemy.kind === "alien"
+        ? [-70, 0, 70].map((vx) => enemy.x + vx * (fall / 245))
+        : [enemy.targetX];
+      ctx.setLineDash([]);
+      for (const targetX of targets) {
+        ctx.setLineDash([5, 6]);
+        ctx.beginPath();
+        ctx.moveTo(enemy.x, originY);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, 7, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     const felled = enemy.kind === "boss" && enemy.hp <= 0;
@@ -165,9 +250,45 @@ export function drawGame(
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+    } else if (enemy.kind === "interceptor") {
+      ctx.beginPath();
+      ctx.moveTo(0, 23);
+      ctx.lineTo(-18, -4);
+      ctx.lineTo(-11, -13);
+      ctx.lineTo(0, -7);
+      ctx.lineTo(11, -13);
+      ctx.lineTo(18, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-11, -13);
+      ctx.lineTo(0, -20);
+      ctx.lineTo(11, -13);
+      ctx.stroke();
     } else {
       const scale = enemy.kind === "boss" ? 2.1 : 1;
       ctx.scale(scale, scale);
+      if (enemy.kind === "boss" && game.bossFight?.phase === 1 && game.bossFight.mode === "telegraph" && game.bossFight.sequenceStep === 1) {
+        ctx.strokeStyle = gold;
+        ctx.fillStyle = `${gold}24`;
+        ctx.beginPath();
+        ctx.moveTo(-16, 1);
+        ctx.lineTo(-38, -10);
+        ctx.lineTo(-55, -5);
+        ctx.lineTo(-28, 13);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(16, 1);
+        ctx.lineTo(38, -10);
+        ctx.lineTo(55, -5);
+        ctx.lineTo(28, 13);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
       ctx.beginPath();
       ctx.ellipse(0, 4, 25, 8, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -175,16 +296,212 @@ export function drawGame(
       ctx.beginPath();
       ctx.arc(0, 1, 10, Math.PI, 0);
       ctx.stroke();
-      ctx.fillStyle = gold;
-      for (const x of [-13, 0, 13]) ctx.fillRect(x - 2, 5, 4, 2);
+      if (enemy.kind === "boss" && game.bossFight?.coreOpen) {
+        const pulse = 1 + Math.sin(elapsed * 12) * 0.14;
+        ctx.fillStyle = gold;
+        ctx.beginPath();
+        ctx.ellipse(0, 3, 8 * pulse, 5 * pulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = fg;
+        ctx.beginPath();
+        ctx.moveTo(-12, 3);
+        ctx.lineTo(12, 3);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = gold;
+        for (const x of [-13, 0, 13]) ctx.fillRect(x - 2, 5, 4, 2);
+      }
     }
     ctx.restore();
     if (enemy.kind === "boss" && enemy.hp > 0) {
+      const barWidth = Math.min(w * 0.62, 360);
+      const barX = (w - barWidth) / 2;
+      const barY = Math.max(62, Math.min(82, h * 0.1));
       ctx.fillStyle = line;
-      ctx.fillRect(w / 2 - Math.min(w * 0.27, 155), 25, Math.min(w * 0.54, 310), 3);
+      ctx.fillRect(barX, barY, barWidth, 7);
       ctx.fillStyle = red;
-      ctx.fillRect(w / 2 - Math.min(w * 0.27, 155), 25, Math.min(w * 0.54, 310) * Math.max(0, enemy.hp / BOSS_HP), 3);
+      ctx.fillRect(barX, barY, barWidth * Math.max(0, enemy.hp / BOSS_HP), 7);
+      ctx.fillStyle = bg;
+      for (const segment of [1 / 3, 2 / 3]) ctx.fillRect(barX + barWidth * segment - 1, barY - 2, 2, 11);
+      ctx.textAlign = "center";
+      ctx.font = "700 9px monospace";
+      ctx.fillStyle = fg;
+      const state = game.bossFight?.coreOpen ? "CORE EXPOSED" : `PHASE ${game.bossFight?.phase ?? 1}`;
+      ctx.fillText(`ALIEN CRAFT · ${state}`, w / 2, barY - 7);
+      ctx.textAlign = "start";
     }
+  }
+
+  if (game.bossFight?.mode === "transition") {
+    const boss = game.enemies.find((enemy) => enemy.kind === "boss");
+    if (boss) {
+      const progress = Math.max(0, Math.min(1, (1.4 - game.bossFight.timer) / 1.4));
+      const pulse = Math.sin(elapsed * 14) * 3;
+      const wing = 42 + progress * 44 + pulse;
+      ctx.save();
+      ctx.strokeStyle = gold;
+      ctx.fillStyle = `${gold}18`;
+      ctx.lineWidth = 2;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(boss.x + side * 30, boss.y + 6);
+        ctx.lineTo(boss.x + side * wing, boss.y + 13);
+        ctx.lineTo(boss.x + side * (wing + 10), boss.y + 34);
+        ctx.lineTo(boss.x + side * 34, boss.y + 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.ellipse(boss.x, boss.y + 27, 52 + progress * 24, 18 + progress * 7, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      ctx.fillStyle = gold;
+      ctx.fillText(`CRAFT TRANSFORMING · PHASE ${Math.min(3, game.bossFight.phase + 1)}`, w / 2, boss.y + 67);
+      ctx.restore();
+    }
+  }
+
+  if (game.bossFight?.mode === "telegraph") {
+    const fight = game.bossFight;
+    ctx.save();
+    ctx.strokeStyle = gold;
+    ctx.fillStyle = gold;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 7]);
+    if (fight.phase === 1) {
+      const boss = game.enemies.find((enemy) => enemy.kind === "boss");
+      const originX = boss?.x ?? w / 2;
+      const originY = (boss?.y ?? 96) + (boss?.radius ?? 48) * 0.65;
+      const targetY = player.y;
+      const openingVolley = fight.sequenceStep === 0;
+      const rays = bossFanVectors(
+        originX,
+        originY,
+        fight.attackX,
+        player.y,
+        openingVolley ? 195 : 270,
+        openingVolley ? 0.08 : 0.2,
+      );
+      const lanes = rays.map((ray) => {
+        const timeToTarget = (targetY - originY) / ray.vy;
+        const x = originX + ray.vx * timeToTarget;
+        const labelTopX = originX + ray.vx * ((targetY - 22 - originY) / ray.vy);
+        return { x, start: Math.min(x, labelTopX) - 22, end: Math.max(x, labelTopX) + 22 };
+      }).sort((a, b) => a.start - b.start);
+      ctx.fillStyle = `${gold}12`;
+      for (const lane of lanes) {
+        ctx.beginPath();
+        ctx.moveTo(originX - 6, originY);
+        ctx.lineTo(lane.x - 22, targetY);
+        ctx.lineTo(lane.x + 22, targetY);
+        ctx.lineTo(originX + 6, originY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      let gapStart = 22;
+      let safestGap = { start: 22, end: 22 };
+      for (const lane of [...lanes, { start: w - 22, end: w - 22 }]) {
+        const gapEnd = Math.max(22, Math.min(w - 22, lane.start));
+        if (gapEnd - gapStart > safestGap.end - safestGap.start) {
+          safestGap = { start: gapStart, end: gapEnd };
+        }
+        gapStart = Math.max(gapStart, Math.min(w - 22, lane.end));
+      }
+      ctx.setLineDash([]);
+      ctx.fillStyle = gold;
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      if (safestGap.end - safestGap.start >= 64) {
+        ctx.beginPath();
+        ctx.moveTo(safestGap.start + 8, targetY - 8);
+        ctx.lineTo(safestGap.start + 8, targetY);
+        ctx.lineTo(safestGap.end - 8, targetY);
+        ctx.lineTo(safestGap.end - 8, targetY - 8);
+        ctx.stroke();
+        ctx.fillText("SAFE GAP", (safestGap.start + safestGap.end) / 2, targetY - 12);
+      }
+      ctx.fillText(openingVolley ? "OPENING VOLLEY" : "SWEEP INCOMING", fight.attackX, Math.min(player.y - 30, h * 0.7));
+    } else if (fight.phase === 2) {
+      ctx.beginPath();
+      ctx.moveTo(fight.attackX, 110);
+      ctx.lineTo(fight.attackX, h - 24);
+      ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      ctx.fillText("LANE LOCK", fight.attackX, 104);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.16, h * 0.48);
+      ctx.lineTo(w * 0.84, h * 0.48);
+      ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      ctx.fillText("GAP FORMING", w / 2, h * 0.48 - 10);
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  if (game.bossFight?.phase === 3 && game.bossFight.mode === "attack" && game.bossFight.followupWarning > 0) {
+    const boss = game.enemies.find((enemy) => enemy.kind === "boss");
+    if (boss) {
+      const originY = boss.y + boss.radius * 0.65;
+      const distanceY = Math.max(1, player.y - originY);
+      const rays = bossFanVectors(boss.x, originY, game.bossFight.attackX, player.y);
+      ctx.save();
+      ctx.strokeStyle = gold;
+      ctx.fillStyle = gold;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      for (const ray of rays) {
+        ctx.beginPath();
+        ctx.moveTo(boss.x, originY);
+        ctx.lineTo(boss.x + ray.vx * (distanceY / ray.vy), player.y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      ctx.fillText("FAN INBOUND · MOVE", w / 2, Math.max(112, player.y - 34));
+      ctx.restore();
+    }
+  }
+
+  if (game.bossFight?.phase === 2 && game.bossFight.mode === "attack" && game.bossFight.followupWarning > 0) {
+    const boss = game.enemies.find((enemy) => enemy.kind === "boss");
+    if (boss) {
+      const originY = boss.y + boss.radius * 0.65;
+      const distanceY = Math.max(1, player.y - originY);
+      const vector = aimedShotVector(boss.x, originY, game.bossFight.attackX, player.y);
+      ctx.save();
+      ctx.strokeStyle = gold;
+      ctx.fillStyle = gold;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(boss.x, originY);
+      ctx.lineTo(boss.x + vector.vx * (distanceY / vector.vy), player.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.textAlign = "center";
+      ctx.font = "700 10px monospace";
+      ctx.fillText("AIMED SHOT · MOVE", w / 2, Math.max(112, player.y - 34));
+      ctx.restore();
+    }
+  }
+
+  if (game.phase === "waves" && game.roundState === "intermission") {
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.font = "700 13px monospace";
+    ctx.fillStyle = gold;
+    ctx.fillText(game.wave === 3 ? "ROUND CLEAR · FINAL CRAFT INBOUND" : `ROUND ${game.wave} CLEAR · RECOVER`, w / 2, h * 0.22);
+    ctx.restore();
   }
 
   const heavy = player.power > 0;
