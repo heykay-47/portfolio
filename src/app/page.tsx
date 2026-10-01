@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import BlurFade from "@/components/magicui/blur-fade";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import HeroAvatar from "@/components/hero-avatar";
 import { Button } from "@/components/ui/button";
 import { DATA } from "@/data/resume";
 import Link from "next/link";
@@ -49,10 +49,7 @@ export default function Page() {
               </BlurFade>
             </div>
             <BlurFade delay={BLUR_FADE_DELAY} className="order-2 shrink-0">
-              <Avatar className="size-24 md:size-32 border rounded-full shadow-lg ring-4 ring-muted">
-                <AvatarImage alt={DATA.name} src={DATA.avatarUrl} />
-                <AvatarFallback>{DATA.initials}</AvatarFallback>
-              </Avatar>
+              <HeroAvatar src={DATA.avatarUrl} alt={DATA.name} initials={DATA.initials} />
             </BlurFade>
           </div>
         </div>
@@ -76,6 +73,7 @@ export default function Page() {
       </BlurFade>
       <section id="work">
         <WorkSection
+          entries={DATA.work}
           headingDelay={BLUR_FADE_DELAY * 5}
           entriesDelay={BLUR_FADE_DELAY * 6}
         />

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import BlurFade from "@/components/magicui/blur-fade";
 import { useMotionPlayback } from "@/components/motion-playback-provider";
-import { DATA } from "@/data/resume";
+import type { DATA } from "@/data/resume";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +34,11 @@ function LogoImage({ src, alt }: { src: string; alt: string }) {
 }
 
 export default function WorkSection({
+  entries,
   headingDelay,
   entriesDelay,
 }: {
+  entries: typeof DATA.work;
   headingDelay: number;
   entriesDelay: number;
 }) {
@@ -81,7 +83,7 @@ export default function WorkSection({
           }}
           className={cn("w-full grid gap-6", isMotionPaused && "motion-paused")}
         >
-          {DATA.work.map((work) => (
+          {entries.map((work) => (
             <AccordionItem
               key={work.company}
               value={work.company}
