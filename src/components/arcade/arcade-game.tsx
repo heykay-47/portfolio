@@ -4,10 +4,39 @@ import BlurFade from "@/components/magicui/blur-fade";
 import { Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArcadeAudio, type AudioSettings, type AudioStatus } from "./arcade-audio";
-import { createGame, resizeGame, stepGame, type ArcadeContent, type Game, type GameEvent } from "./arcade-engine";
+import {
+  createGame, DIFFICULTIES, resizeGame, stepGame,
+  type ArcadeContent, type DifficultyLevel, type Game, type GameEvent, type StartLevel,
+} from "./arcade-engine";
 import { drawGame } from "./arcade-renderer";
 
 type Stage = "ready" | "playing" | "paused" | "won" | "lost" | "leaving";
+type FlightSettings = { startLevel: StartLevel; difficulty: DifficultyLevel };
+
+const FLIGHT_SETTINGS_KEY = "portfolio-arcade-flight-v1";
+const LEVELS: { value: StartLevel; label: string }[] = [
+  { value: 1, label: "Round 1" },
+  { value: 2, label: "Round 2" },
+  { value: 3, label: "Round 3" },
+  { value: 4, label: "Boss" },
+];
+const DIFFICULTY_NOTES: Record<DifficultyLevel, string> = {
+  1: "The original tuning. Long warnings and generous pickups.",
+  2: "Craft fly in pairs, faster, with quicker fire and tighter gaps.",
+  3: "Reinforcements keep coming and take an extra hit. The boss calls escorts.",
+  4: "Three-ship squads, short warnings and a tougher final craft.",
+  5: "A crowded sky, rapid fire and barely any recovery time.",
+};
+
+function readFlightSettings(): FlightSettings {
+  const fallback: FlightSettings = { startLevel: 1, difficulty: 3 };
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(FLIGHT_SETTINGS_KEY) ?? "null");
+    const startLevel = LEVELS.some((level) => level.value === saved?.startLevel) ? saved.startLevel : fallback.startLevel;
+    const difficulty = saved?.difficulty in DIFFICULTIES ? saved.difficulty : fallback.difficulty;
+    return { startLevel, difficulty };
+  } catch { return fallback; }
+}
 
 export default function ArcadeGame({
   content,
@@ -25,6 +54,7 @@ export default function ArcadeGame({
     catch { return 0; }
   });
   const bestRef = useRef(best);
+  const [flight, setFlight] = useState<FlightSettings>(readFlightSettings);
   const [health, setHealth] = useState(3);
   const [wave, setWave] = useState(1);
   const [bossPhase, setBossPhase] = useState(1);
@@ -93,6 +123,12 @@ export default function ArcadeGame({
     setStage("playing");
   }, []);
 
+  const configureFlight = (change: Partial<FlightSettings>) => {
+    const next = { ...flight, ...change };
+    setFlight(next);
+    try { window.localStorage.setItem(FLIGHT_SETTINGS_KEY, JSON.stringify(next)); } catch { /* Optional. */ }
+  };
+
   const updateBest = useCallback((value: number) => {
     if (value <= bestRef.current) return;
     bestRef.current = value;
@@ -103,23 +139,25 @@ export default function ArcadeGame({
   const start = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    gameRef.current = createGame(canvas.clientWidth, canvas.clientHeight, content);
+    const { startLevel, difficulty } = flight;
+    gameRef.current = createGame(canvas.clientWidth, canvas.clientHeight, content, Math.random, { startLevel, difficulty });
     keysRef.current.clear();
     pointerRef.current = null;
     setScore(0);
     setHealth(3);
-    setWave(1);
+    setWave(startLevel);
     setBossPhase(1);
-    setAnnouncement("Round 1 begins");
+    setAnnouncement(startLevel === 4 ? "Final craft incoming" : `Round ${startLevel} begins`);
     setFelled(false);
     setUpgrades("");
     const audio = getAudio();
     audio.configure(audioSettings);
     audio.start();
+    if (startLevel === 4) audio.setTrack("boss");
     void audio.unlock();
     setStage("playing");
     canvas.focus();
-  }, [content, getAudio, audioSettings]);
+  }, [content, getAudio, audioSettings, flight]);
 
   const leave = useCallback((destination?: "projects") => {
     if (exitTimerRef.current) return;
@@ -260,6 +298,7 @@ export default function ArcadeGame({
         <div className="arcade-hud">
           <div className="arcade-hud-stats">
             <span>{wave === 4 ? `BOSS ${bossPhase}/3` : `ROUND ${wave}/3`}</span>
+            <span>{DIFFICULTIES[flight.difficulty].label.toUpperCase()}</span>
             <span>SCORE {score.toString().padStart(5, "0")}</span>
             <span>HULL {"◆".repeat(Math.max(0, health))}{"◇".repeat(3 - Math.max(0, health))}</span>
             {upgrades && <span className="arcade-hud-upgrades">{upgrades}</span>}
@@ -298,6 +337,7 @@ export default function ArcadeGame({
                   <h2>Portfolio, in flight.</h2>
                   <p>The page becomes the playfield. Learn each round, collect project and skill upgrades, then take on the final craft.</p>
                   <div className="arcade-instructions"><span>DESKTOP<br /><strong>Move: arrows / WASD<br />Fire: Space · Pause: Esc</strong></span><span>TOUCH<br /><strong>Drag to steer<br />Automatic fire</strong></span></div>
+                  {flightOptions()}
                   {audioOptions()}
                   <button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Start flight <span aria-hidden="true">↗</span></button>
                   <button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button>
@@ -305,7 +345,7 @@ export default function ArcadeGame({
               ) : stage === "paused" ? (
                 <><h2>Flight paused.</h2><p>Your run is waiting here.</p>{audioOptions()}<button ref={primaryActionRef} type="button" className="arcade-primary" onClick={resume}>Resume flight</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button></>
               ) : (
-                <><h2>{stage === "won" ? "Sky cleared." : "Flight over."}</h2><p>{stage === "won" ? "You made it through the portfolio." : "The next run starts whenever you do."}</p><div className="arcade-result"><span>YOUR SCORE <strong>{score}</strong></span><span>PERSONAL BEST <strong>{best}</strong></span></div><button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Play again</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button><button type="button" className="arcade-text-button" onClick={() => leave("projects")}>Explore projects ↗</button></>
+                <><h2>{stage === "won" ? "Sky cleared." : "Flight over."}</h2><p>{stage === "won" ? "You made it through the portfolio." : "The next run starts whenever you do."}</p><div className="arcade-result"><span>YOUR SCORE <strong>{score}</strong></span><span>PERSONAL BEST <strong>{best}</strong></span></div>{flightOptions()}<button ref={primaryActionRef} type="button" className="arcade-primary" onClick={start}>Play again</button><button type="button" className="arcade-text-button" onClick={() => leave()}>Return to portfolio</button><button type="button" className="arcade-text-button" onClick={() => leave("projects")}>Explore projects ↗</button></>
               )}
             </div>
           </BlurFade>
@@ -313,6 +353,24 @@ export default function ArcadeGame({
       )}
     </div>
   );
+
+  function flightOptions() {
+    return (
+      <fieldset className="arcade-audio-options arcade-flight-options">
+        <legend>Flight</legend>
+        <div className="arcade-level-choices">
+          {LEVELS.map((level) => (
+            <label key={level.value}>
+              <input type="radio" name="arcade-start-level" value={level.value} checked={flight.startLevel === level.value} onChange={() => configureFlight({ startLevel: level.value })} />
+              {level.label}
+            </label>
+          ))}
+        </div>
+        <label className="arcade-audio-level">Difficulty <input type="range" min="1" max="5" step="1" value={flight.difficulty} aria-valuetext={DIFFICULTIES[flight.difficulty].label} onChange={(event) => configureFlight({ difficulty: Number(event.target.value) as DifficultyLevel })} /><span>{DIFFICULTIES[flight.difficulty].label}</span></label>
+        <p>{DIFFICULTY_NOTES[flight.difficulty]}</p>
+      </fieldset>
+    );
+  }
 
   function audioOptions() {
     return (

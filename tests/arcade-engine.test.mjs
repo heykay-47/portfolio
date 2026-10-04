@@ -13,6 +13,12 @@ const stepFor = (game, seconds, input = idle, onEvent = () => {}) => {
   const frames = Math.ceil(seconds / 0.04);
   for (let i = 0; i < frames; i++) stepGame(game, Math.min(0.04, seconds - i * 0.04), input, onEvent);
 };
+const reachBossUnpowered = (game) => {
+  while (game.phase !== "boss") stepGame(game, 0.04, idle, () => {});
+  game.pickups = [];
+  game.pickupIn = Infinity;
+  stepFor(game, 2);
+};
 
 test("authored reinforcements keep the round active without unbounded enemy pressure", () => {
   const game = createGame(390, 844, content, () => 0.5);
@@ -144,22 +150,25 @@ test("round two introduces a warned interceptor and rail pulse after round one",
   assert.ok(game.hazards.some((hazard) => hazard.kind === "rail-pulse" && hazard.warningFor > 0));
 });
 
-test("a debris gate only damages inside its visible side panels", () => {
+test("the playfield rails stop the jet from slipping around a debris gate", () => {
   const game = createGame(700, 800, content, () => 0.5);
   game.player.x = 22;
   game.player.invulnerable = 0;
   game.hazards.push({ kind: "debris-gate", x: 84, y: game.player.y, width: 532, height: 22, gapX: 350, gapWidth: 100, age: 0, warningFor: 0, activeFor: 1, velocity: 0, drift: 0 });
   stepGame(game, 0.04, idle, () => {});
-  assert.equal(game.health, 3);
+  assert.ok(game.player.x > 84);
+  assert.equal(game.health, 2);
 
   game.player.x = 678;
-  stepGame(game, 0.04, idle, () => {});
-  assert.equal(game.health, 3);
-
-  game.player.x = 200;
   game.player.invulnerable = 0;
   stepGame(game, 0.04, idle, () => {});
-  assert.equal(game.health, 2);
+  assert.ok(game.player.x < 616);
+  assert.equal(game.health, 1);
+
+  game.player.x = 350;
+  game.player.invulnerable = 0;
+  stepGame(game, 0.04, idle, () => {});
+  assert.equal(game.health, 1);
 });
 
 test("round three teaches the gate before combining it with a ship and then the alien", () => {
@@ -362,6 +371,7 @@ test("an unpowered centered continuous-fire run defeats the boss within its tuni
       if (event === "wave" && game.wave === 4) {
         started.at = game.elapsed;
         game.pickups = [];
+        game.pickupIn = Infinity;
         game.player.rapid = 0;
         game.player.wide = 0;
         game.player.power = 0;
@@ -378,7 +388,7 @@ test("an unpowered centered continuous-fire run defeats the boss within its tuni
 test("boss health segments stop power damage from skipping the next phase", () => {
   const game = createGame(700, 800, content, () => 0.5);
   game.player.invulnerable = Infinity;
-  stepFor(game, 163);
+  reachBossUnpowered(game);
   const boss = game.enemies.find((enemy) => enemy.kind === "boss");
   assert.equal(boss.hp, BOSS_HP);
   game.bossFight.mode = "recovery";
@@ -400,7 +410,7 @@ test("nova earns the exposed-core bonus without skipping a boss health segment",
   const applyNova = (coreOpen) => {
     const game = createGame(700, 800, content, () => 0.5);
     game.player.invulnerable = Infinity;
-    stepFor(game, 163);
+    reachBossUnpowered(game);
     const boss = game.enemies.find((enemy) => enemy.kind === "boss");
     game.bossFight.mode = "recovery";
     game.bossFight.timer = 10;
@@ -423,7 +433,7 @@ test("the exposed core rewards an ordinary shot with double base damage", () => 
   const damageBoss = (coreOpen) => {
     const game = createGame(700, 800, content, () => 0.5);
     game.player.invulnerable = Infinity;
-    stepFor(game, 163);
+    reachBossUnpowered(game);
     const boss = game.enemies.find((enemy) => enemy.kind === "boss");
     game.bossFight.mode = coreOpen ? "recovery" : "attack";
     game.bossFight.timer = 10;
@@ -629,4 +639,89 @@ test("round pickups keep their existing spawn cadence", () => {
   assert.equal(game.pickups.length, 1);
   assert.equal(game.pickupIn, 5.5);
   assert.ok(game.pickups[0].y >= 82);
+});
+
+test("a run can start at any round or directly at the boss", () => {
+  const roundTwo = createGame(700, 800, content, () => 0.5, { startLevel: 2 });
+  assert.equal(roundTwo.wave, 2);
+  assert.equal(roundTwo.phase, "waves");
+  stepFor(roundTwo, 0.5);
+  assert.ok(roundTwo.enemies.some((enemy) => enemy.kind === "interceptor"));
+
+  const boss = createGame(700, 800, content, () => 0.5, { startLevel: 4, difficulty: 4 });
+  assert.equal(boss.wave, 4);
+  assert.equal(boss.phase, "boss");
+  assert.equal(boss.bossFight.mode, "intro");
+  assert.equal(boss.enemies.find((enemy) => enemy.kind === "boss").hp, boss.bossMaxHp);
+  assert.ok(boss.bossMaxHp > BOSS_HP);
+});
+
+test("higher difficulty sends tougher, faster squads with less recovery time", () => {
+  const easy = createGame(700, 800, content, () => 0.5, { difficulty: 1 });
+  const hard = createGame(700, 800, content, () => 0.5, { difficulty: 5 });
+  stepFor(easy, 0.5);
+  stepFor(hard, 0.5);
+  const easyShips = easy.enemies.filter((enemy) => enemy.kind === "ship");
+  const hardShips = hard.enemies.filter((enemy) => enemy.kind === "ship");
+  assert.equal(easyShips.length, 1);
+  assert.equal(hardShips.length, 3);
+  assert.ok(hardShips[0].hp > easyShips[0].hp);
+  assert.ok(hardShips[0].vy > easyShips[0].vy);
+  assert.ok(hard.difficulty.invulnerable < easy.difficulty.invulnerable);
+});
+
+test("hard bosses call interceptor escorts once the fight is underway", () => {
+  const game = createGame(700, 800, content, () => 0.5, { startLevel: 4, difficulty: 5 });
+  game.player.invulnerable = Infinity;
+  stepFor(game, 9);
+  assert.ok(game.enemies.some((enemy) => enemy.kind === "interceptor"));
+  assert.ok(game.enemies.filter((enemy) => enemy.kind === "interceptor").length <= game.difficulty.bossEscortCap);
+});
+
+test("nothing can fly outside the drawn playfield rails", () => {
+  const game = createGame(700, 800, content, () => 0.5, { difficulty: 5 });
+  game.player.invulnerable = Infinity;
+  stepFor(game, 20, { x: -1, y: 0, firing: false, target: null });
+  assert.ok(game.player.x >= 84);
+  for (const enemy of game.enemies) assert.ok(enemy.x - enemy.radius >= 84 - 1e-6 && enemy.x + enemy.radius <= 616 + 1e-6);
+  for (const pickup of game.pickups) assert.ok(pickup.x >= 84 && pickup.x <= 616);
+});
+
+test("rail charges can reach the jet anywhere inside the playfield", () => {
+  const low = createGame(700, 800, content, () => 0);
+  const high = createGame(700, 800, content, () => 0.999);
+  for (const game of [low, high]) {
+    game.player.invulnerable = Infinity;
+    game.wave = 2;
+    game.beatIndex = 1;
+    stepFor(game, 0.7);
+  }
+  const lowX = low.hazards.find((hazard) => hazard.kind === "rail-pulse");
+  const highX = high.hazards.find((hazard) => hazard.kind === "rail-pulse");
+  assert.ok(lowX.x - lowX.width / 2 <= 84 + 1e-6);
+  assert.ok(highX.x + highX.width / 2 >= 616 - 1);
+});
+
+test("powerups keep arriving during the boss fight", () => {
+  const game = createGame(700, 800, content, () => 0.5, { startLevel: 4 });
+  game.player.invulnerable = Infinity;
+  game.player.x = 100;
+  stepFor(game, 2 + game.difficulty.pickupEvery);
+  assert.ok(game.pickups.some((pickup) => pickup.kind !== "project"));
+});
+
+test("harder difficulties keep feeding more craft into each round", () => {
+  const count = (difficulty) => {
+    const game = createGame(700, 800, content, () => 0.5, { difficulty });
+    game.player.invulnerable = Infinity;
+    let peak = 0;
+    for (let i = 0; i < 300; i++) {
+      stepGame(game, 0.04, idle, () => {});
+      peak = Math.max(peak, game.enemies.filter((enemy) => enemy.kind !== "asteroid").length);
+    }
+    return peak;
+  };
+  const peaks = [1, 2, 3, 4, 5].map(count);
+  for (let i = 1; i < peaks.length; i++) assert.ok(peaks[i] >= peaks[i - 1], peaks.join(","));
+  assert.ok(peaks[4] > peaks[0] * 2, peaks.join(","));
 });

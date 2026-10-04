@@ -285,6 +285,9 @@ body.arcade-active [data-portfolio-dock] { visibility: hidden; }
 .arcade-audio-options a:focus-visible { outline: 2px solid #b88734; outline-offset: 3px; }
 .arcade-audio-options input[type="checkbox"] { width: 16px; height: 16px; }
 .arcade-audio-choices { display: flex; gap: 24px; }
+.arcade-audio-options input[type="radio"] { width: 16px; height: 16px; }
+.arcade-level-choices { display: flex; flex-wrap: wrap; column-gap: 20px; }
+.arcade-flight-options .arcade-audio-level span { min-width: 9ch; }
 .arcade-audio-level { flex-wrap: wrap; }
 .arcade-audio-level input { flex: 1; min-width: 70px; max-width: 180px; }
 .arcade-audio-level span { font-size: 12px; font-variant-numeric: tabular-nums; }

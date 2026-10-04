@@ -1,4 +1,4 @@
-import { aimedShotVector, BOSS_HP, bossFanVectors, type Game } from "./arcade-engine";
+import { aimedShotVector, bossFanVectors, playfieldBounds, type Game } from "./arcade-engine";
 
 export function drawGame(
   ctx: CanvasRenderingContext2D,
@@ -24,8 +24,7 @@ export function drawGame(
   }
 
   // The homepage's dividers and timeline become the moving playfield rails.
-  const left = Math.max(18, w * 0.12);
-  const right = w - left;
+  const { left, right } = playfieldBounds(w);
   ctx.strokeStyle = line;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -320,7 +319,7 @@ export function drawGame(
       ctx.fillStyle = line;
       ctx.fillRect(barX, barY, barWidth, 7);
       ctx.fillStyle = red;
-      ctx.fillRect(barX, barY, barWidth * Math.max(0, enemy.hp / BOSS_HP), 7);
+      ctx.fillRect(barX, barY, barWidth * Math.max(0, enemy.hp / game.bossMaxHp), 7);
       ctx.fillStyle = bg;
       for (const segment of [1 / 3, 2 / 3]) ctx.fillRect(barX + barWidth * segment - 1, barY - 2, 2, 11);
       ctx.textAlign = "center";

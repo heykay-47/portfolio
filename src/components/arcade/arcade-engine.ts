@@ -9,6 +9,38 @@ type EnemyKind = "asteroid" | "ship" | "interceptor" | "alien" | "boss";
 export type Upgrade = "shield" | "rapid" | "wide" | "power" | "magnet" | "repair" | "nova";
 const UPGRADES: Upgrade[] = ["shield", "rapid", "wide", "power", "magnet", "repair", "nova"];
 export const BOSS_HP = 60;
+export type StartLevel = 1 | 2 | 3 | 4;
+export type DifficultyLevel = 1 | 2 | 3 | 4 | 5;
+type Difficulty = {
+  label: string;
+  enemySpeed: number;
+  enemyHp: number;
+  squad: number;
+  escortCap: number;
+  reinforcePace: number;
+  fireCooldown: number;
+  telegraph: number;
+  bulletSpeed: number;
+  gapScale: number;
+  invulnerable: number;
+  pickupEvery: number;
+  dropChance: number;
+  bossHp: number;
+  bossTempo: number;
+  bossHullDamage: number;
+  bossEscortEvery: number;
+  bossEscortCap: number;
+  streamEvery: number;
+};
+// Cadet keeps the original tuning; each step tightens timing, density and the final craft.
+export const DIFFICULTIES: Record<DifficultyLevel, Difficulty> = {
+  1: { label: "Cadet", enemySpeed: 1, enemyHp: 0, squad: 1, escortCap: 2, reinforcePace: 1, fireCooldown: 1, telegraph: 1, bulletSpeed: 1, gapScale: 1, invulnerable: 1.6, pickupEvery: 5.5, dropChance: 0.12, bossHp: BOSS_HP, bossTempo: 1, bossHullDamage: 0.48, bossEscortEvery: 0, bossEscortCap: 0, streamEvery: 0 },
+  2: { label: "Pilot", enemySpeed: 1.15, enemyHp: 0, squad: 2, escortCap: 4, reinforcePace: 0.85, fireCooldown: 0.8, telegraph: 0.88, bulletSpeed: 1.12, gapScale: 0.94, invulnerable: 1.4, pickupEvery: 6.5, dropChance: 0.1, bossHp: 72, bossTempo: 0.88, bossHullDamage: 0.42, bossEscortEvery: 0, bossEscortCap: 0, streamEvery: 5 },
+  3: { label: "Ace", enemySpeed: 1.3, enemyHp: 1, squad: 2, escortCap: 5, reinforcePace: 0.72, fireCooldown: 0.66, telegraph: 0.76, bulletSpeed: 1.25, gapScale: 0.88, invulnerable: 1.2, pickupEvery: 7.5, dropChance: 0.08, bossHp: 84, bossTempo: 0.78, bossHullDamage: 0.36, bossEscortEvery: 10, bossEscortCap: 1, streamEvery: 3.8 },
+  4: { label: "Veteran", enemySpeed: 1.45, enemyHp: 1, squad: 3, escortCap: 6, reinforcePace: 0.62, fireCooldown: 0.55, telegraph: 0.66, bulletSpeed: 1.38, gapScale: 0.82, invulnerable: 1.0, pickupEvery: 9, dropChance: 0.06, bossHp: 96, bossTempo: 0.7, bossHullDamage: 0.3, bossEscortEvery: 8, bossEscortCap: 2, streamEvery: 2.8 },
+  5: { label: "Nightmare", enemySpeed: 1.6, enemyHp: 2, squad: 3, escortCap: 8, reinforcePace: 0.52, fireCooldown: 0.46, telegraph: 0.58, bulletSpeed: 1.5, gapScale: 0.76, invulnerable: 0.85, pickupEvery: 10.5, dropChance: 0.05, bossHp: 110, bossTempo: 0.62, bossHullDamage: 0.25, bossEscortEvery: 6, bossEscortCap: 2, streamEvery: 2 },
+};
+export type GameOptions = { startLevel?: StartLevel; difficulty?: DifficultyLevel };
 const FELLED_SECONDS = 4.2;
 type BossPhase = 1 | 2 | 3;
 type BossMode = "intro" | "telegraph" | "attack" | "recovery" | "transition";
@@ -118,6 +150,10 @@ export type Game = {
   fireIn: number;
   content: ArcadeContent;
   random: () => number;
+  difficulty: Difficulty;
+  bossMaxHp: number;
+  escortIn: number;
+  streamIn: number;
 };
 
 const ROUND_SECONDS = [45, 50, 55];
@@ -142,7 +178,6 @@ const ROUND_BEATS: RoundBeat[][] = [
 const INTERMISSION_SECONDS = 4;
 const BOSS_ATTACK_CLEARANCE = 0.1;
 const BOSS_RECOVERY_SECONDS = 1.7;
-const BOSS_HULL_DAMAGE_MULTIPLIER = 0.48;
 const BOSS_PHASE_TWO_ATTACK_SECONDS = 3.5;
 const BOSS_PHASE_TWO_WARNING_REMAINING = 2.4;
 const BOSS_PHASE_TWO_WARNING_SECONDS = 0.55;
@@ -152,6 +187,12 @@ const BOSS_FAN_SPREAD = 0.2;
 const BOSS_OPENING_SPREAD = 0.08;
 const BOSS_OPENING_SPEED = 195;
 const BOSS_FAN_SPEED = 270;
+const PLAYER_EDGE = 14;
+// The drawn rails are the playfield walls: nothing flies outside them, so no hazard can be skirted.
+export function playfieldBounds(width: number) {
+  const left = Math.max(18, width * 0.12);
+  return { left, right: width - left, span: Math.max(1, width - left * 2) };
+}
 const intersects = (ax: number, ay: number, bx: number, by: number, radius: number) =>
   (ax - bx) ** 2 + (ay - by) ** 2 < radius ** 2;
 
@@ -160,8 +201,10 @@ export function createGame(
   height: number,
   content: ArcadeContent,
   random: () => number = Math.random,
+  options: GameOptions = {},
 ): Game {
-  return {
+  const difficulty = DIFFICULTIES[options.difficulty ?? 1];
+  const game: Game = {
     width,
     height,
     elapsed: 0,
@@ -194,7 +237,15 @@ export function createGame(
     fireIn: 0,
     content,
     random,
+    difficulty,
+    bossMaxHp: difficulty.bossHp,
+    escortIn: difficulty.bossEscortEvery,
+    streamIn: difficulty.streamEvery,
   };
+  const startLevel = options.startLevel ?? 1;
+  if (startLevel === 4) beginBoss(game);
+  else game.wave = startLevel;
+  return game;
 }
 
 export function resizeGame(game: Game, width: number, height: number) {
@@ -248,23 +299,25 @@ function popup(game: Game, x: number, y: number, text: string) {
 }
 
 function spawnEnemy(game: Game, kind: EnemyKind) {
+  const { difficulty } = game;
   const radius = kind === "asteroid" ? 18 + game.random() * 10 : kind === "boss" ? 48 : 20;
-  const speed = kind === "interceptor" ? 116 : kind === "alien" ? 126 : 85 + game.wave * 18;
-  const x = radius + game.random() * Math.max(1, game.width - radius * 2);
+  const speed = (kind === "interceptor" ? 116 : kind === "alien" ? 126 : 85 + game.wave * 18) * difficulty.enemySpeed;
+  const { left, right, span } = playfieldBounds(game.width);
+  const x = left + radius + game.random() * Math.max(1, span - radius * 2);
   const laneX = kind === "interceptor"
-    ? Math.max(radius + 8, Math.min(game.width - radius - 8, game.width * (game.random() < 0.5 ? 0.24 : 0.76)))
+    ? Math.max(left + radius + 8, Math.min(right - radius - 8, left + span * (game.random() < 0.5 ? 0.15 : 0.85)))
     : undefined;
   game.enemies.push({
     kind,
     x,
     y: -radius,
     radius,
-    hp: kind === "asteroid" ? 2 : kind === "alien" ? 3 : kind === "boss" ? BOSS_HP : 2,
+    hp: kind === "asteroid" ? 2 : kind === "alien" ? 3 + difficulty.enemyHp : kind === "boss" ? game.bossMaxHp : 2 + difficulty.enemyHp,
     laneX,
     vy: speed + game.random() * 32,
     drift: kind === "interceptor" ? 0 : kind === "alien" ? 95 : (game.random() - 0.5) * 50,
     age: 0,
-    shot: kind === "interceptor" ? 1.5 : kind === "alien" ? 1.8 : 1.5 + game.random() * 1.4,
+    shot: (kind === "interceptor" ? 1.5 : kind === "alien" ? 1.8 : 1.5 + game.random() * 1.4) * difficulty.fireCooldown,
     flash: 0,
     warningFor: 0,
     targetX: game.player.x,
@@ -272,11 +325,9 @@ function spawnEnemy(game: Game, kind: EnemyKind) {
 }
 
 function spawnDebrisLane(game: Game) {
-  const left = Math.max(30, game.width * 0.12);
-  const right = Math.min(game.width - 30, game.width * 0.88);
-  const span = Math.max(1, right - left);
+  const { left, span } = playfieldBounds(game.width);
   const gapX = left + span * (0.35 + game.random() * 0.3);
-  const gapWidth = Math.max(88, Math.min(128, span * 0.3));
+  const gapWidth = Math.max(88, Math.min(128, span * 0.3)) * game.difficulty.gapScale;
   const count = Math.max(4, Math.floor(span / 54));
   for (let i = 0; i < count; i++) {
     const x = left + (i / (count - 1)) * span;
@@ -284,7 +335,7 @@ function spawnDebrisLane(game: Game) {
     const radius = 18 + game.random() * 5;
     game.enemies.push({
       kind: "asteroid", x, y: -radius - Math.floor(i / 3) * 20, radius, hp: 2,
-      safeGapX: gapX, vy: 112 + game.random() * 18, drift: 0, age: 0, shot: 99, flash: 0,
+      safeGapX: gapX, vy: (112 + game.random() * 18) * game.difficulty.enemySpeed, drift: 0, age: 0, shot: 99, flash: 0,
       warningFor: 0, targetX: game.player.x,
     });
   }
@@ -293,32 +344,37 @@ function spawnDebrisLane(game: Game) {
 function spawnHazard(game: Game, kind: Hazard["kind"]) {
   if (kind === "rail-pulse") {
     const width = Math.max(44, Math.min(62, game.width * 0.16));
-    const min = game.width * 0.2;
-    const max = game.width * 0.8;
-    const x = min + game.random() * (max - min);
-    game.hazards.push({ kind, x, y: 0, width, height: game.height, gapX: 0, gapWidth: 0, age: 0, warningFor: 1.35, activeFor: 0.85, velocity: 0, drift: 0 });
+    const { left, right } = playfieldBounds(game.width);
+    const x = left + width / 2 + game.random() * Math.max(0, right - left - width);
+    game.hazards.push({ kind, x, y: 0, width, height: game.height, gapX: 0, gapWidth: 0, age: 0, warningFor: 1.35 * game.difficulty.telegraph, activeFor: 0.85, velocity: 0, drift: 0 });
     return;
   }
-  const left = game.width * 0.12;
-  const width = game.width - left * 2;
+  const { left, span: width } = playfieldBounds(game.width);
   game.hazards.push({
     kind, x: left, y: -22, width, height: 22,
     gapX: left + width * (0.3 + game.random() * 0.4),
-    gapWidth: Math.max(92, Math.min(138, width * 0.32)),
-    age: 0, warningFor: 1.8, activeFor: 12, velocity: 112, drift: game.random() < 0.5 ? -42 : 42,
+    gapWidth: Math.max(92, Math.min(138, width * 0.32)) * game.difficulty.gapScale,
+    age: 0, warningFor: 1.8 * game.difficulty.telegraph, activeFor: 12, velocity: 112 * game.difficulty.enemySpeed,
+    drift: (game.random() < 0.5 ? -42 : 42) * game.difficulty.enemySpeed,
   });
 }
 
 function playRoundPattern(game: Game, kind: RoundPattern) {
   if (kind === "debris-lane") spawnDebrisLane(game);
   else if (kind === "rail-pulse" || kind === "debris-gate") spawnHazard(game, kind);
-  else spawnEnemy(game, kind);
+  else {
+    for (let i = 0; i < game.difficulty.squad; i++) {
+      spawnEnemy(game, kind);
+      // Stagger squadmates so they arrive as a formation rather than a stack.
+      game.enemies[game.enemies.length - 1].y -= i * 70;
+    }
+  }
 }
 
 function reinforceRoundPattern(game: Game, kind: RoundPattern) {
   if (kind === "debris-lane" && game.enemies.some((enemy) => enemy.kind === "asteroid")) return;
   if ((kind === "debris-gate" || kind === "rail-pulse") && game.hazards.some((hazard) => hazard.kind === kind)) return;
-  if ((kind === "ship" || kind === "interceptor" || kind === "alien") && game.enemies.filter((enemy) => enemy.kind !== "asteroid").length >= 2) return;
+  if ((kind === "ship" || kind === "interceptor" || kind === "alien") && game.enemies.filter((enemy) => enemy.kind !== "asteroid").length >= game.difficulty.escortCap) return;
   playRoundPattern(game, kind);
 }
 
@@ -340,15 +396,16 @@ function advanceRoundBeat(game: Game, onEvent: (event: GameEvent) => void) {
   game.reinforcementIndex = 0;
 }
 
-function spawnPickup(game: Game) {
-  const project = Math.floor(game.elapsed / 5.5) % 3 === 0 && game.content.projects.length > 0;
+function spawnPickup(game: Game, upgradesOnly = false) {
+  const project = !upgradesOnly && Math.floor(game.elapsed / 5.5) % 3 === 0 && game.content.projects.length > 0;
   const selected = project
     ? game.content.projects[Math.floor(game.elapsed / 16.5) % game.content.projects.length]
     : null;
   const upgrade = UPGRADES[Math.floor(game.elapsed / 5.5) % UPGRADES.length];
   const entryY = Math.max(82, game.height * 0.12);
+  const { left, span } = playfieldBounds(game.width);
   game.pickups.push({
-    x: 36 + game.random() * Math.max(1, game.width - 72),
+    x: left + 24 + game.random() * Math.max(1, span - 48),
     y: entryY,
     kind: selected ? "project" : upgrade,
     label: selected?.title ?? game.content.skills[Math.floor(game.elapsed / 5.5) % game.content.skills.length] ?? "Upgrade",
@@ -405,7 +462,8 @@ export function stepGame(game: Game, dt: number, input: GameInput, onEvent: (eve
     player.x += (input.x / magnitude) * 600 * dt;
     player.y += (input.y / magnitude) * 600 * dt;
   }
-  player.x = Math.max(22, Math.min(game.width - 22, player.x));
+  const bounds = playfieldBounds(game.width);
+  player.x = Math.max(bounds.left + PLAYER_EDGE, Math.min(bounds.right - PLAYER_EDGE, player.x));
   player.y = Math.max(game.height * 0.28, Math.min(game.height - 32, player.y));
 
   game.fireIn -= dt;
@@ -433,9 +491,19 @@ export function stepGame(game: Game, dt: number, input: GameInput, onEvent: (eve
         game.beatElapsed = 0;
       } else if (beat && game.beatSpawned) {
         const reinforcements = beat.reinforcements ?? [];
-        while (game.reinforcementIndex < reinforcements.length && game.beatElapsed >= reinforcements[game.reinforcementIndex].at) {
+        while (game.reinforcementIndex < reinforcements.length && game.beatElapsed >= reinforcements[game.reinforcementIndex].at * game.difficulty.reinforcePace) {
           reinforceRoundPattern(game, reinforcements[game.reinforcementIndex].pattern);
           game.reinforcementIndex += 1;
+        }
+        if (game.difficulty.streamEvery > 0 && game.beatElapsed < beat.advanceAfterSeconds) {
+          // Harder flights keep feeding craft into every beat, including hazard drills.
+          game.streamIn -= dt;
+          if (game.streamIn <= 0) {
+            game.streamIn = game.difficulty.streamEvery;
+            const enemyPatterns = beat.patterns.filter((pattern): pattern is "ship" | "interceptor" | "alien" => pattern === "ship" || pattern === "interceptor" || pattern === "alien");
+            const kind = enemyPatterns[Math.floor(game.random() * enemyPatterns.length)] ?? (["ship", "interceptor", "alien"] as const)[Math.min(2, game.wave - 1)];
+            if (game.enemies.filter((enemy) => enemy.kind !== "asteroid").length < game.difficulty.escortCap) spawnEnemy(game, kind);
+          }
         }
         const threatsRemain = game.enemies.length > 0 || game.bullets.some((bullet) => bullet.hostile) || game.hazards.length > 0;
         if (game.beatElapsed >= beat.advanceAfterSeconds && !threatsRemain) {
@@ -451,25 +519,34 @@ export function stepGame(game: Game, dt: number, input: GameInput, onEvent: (eve
       game.pickupIn -= dt;
       if (game.pickupIn <= 0) {
         spawnPickup(game);
-        game.pickupIn = 5.5;
+        game.pickupIn = game.difficulty.pickupEvery;
       }
     }
   }
-  if (game.phase === "boss") updateBoss(game, dt, onEvent);
+  if (game.phase === "boss") {
+    updateBoss(game, dt, onEvent);
+    if (game.bossFight && game.bossFight.mode !== "intro") {
+      game.pickupIn -= dt;
+      if (game.pickupIn <= 0) {
+        spawnPickup(game, true);
+        game.pickupIn = game.difficulty.pickupEvery;
+      }
+    }
+  }
 
   for (const enemy of game.enemies) {
     enemy.age += dt;
     enemy.flash = Math.max(0, enemy.flash - dt);
     if (enemy.kind === "boss") {
       enemy.y = Math.min(96, enemy.y + enemy.vy * dt);
-      enemy.x = game.width / 2 + Math.sin(enemy.age * 0.62) * Math.min(game.width * 0.26, 150);
+      enemy.x = game.width / 2 + Math.sin(enemy.age * 0.62) * Math.max(0, Math.min(game.width * 0.26, 150, bounds.span / 2 - enemy.radius));
     } else {
       enemy.y += enemy.vy * dt;
       if (enemy.kind === "interceptor" && enemy.laneX !== undefined) {
         const distanceToLane = enemy.laneX - enemy.x;
         enemy.x += Math.sign(distanceToLane) * Math.min(Math.abs(distanceToLane), 220 * dt);
       } else {
-        enemy.x = Math.max(enemy.radius, Math.min(game.width - enemy.radius, enemy.x + Math.sin(enemy.age * 2) * enemy.drift * dt));
+        enemy.x = Math.max(bounds.left + enemy.radius, Math.min(bounds.right - enemy.radius, enemy.x + Math.sin(enemy.age * 2) * enemy.drift * dt));
       }
     }
     if (game.phase !== "felled" && enemy.kind !== "asteroid" && enemy.kind !== "boss" && enemy.y > 40 && enemy.y < game.height * 0.72) {
@@ -481,7 +558,7 @@ export function stepGame(game: Game, dt: number, input: GameInput, onEvent: (eve
         enemy.shot -= dt;
         if (enemy.shot <= 0) {
           enemy.targetX = enemy.kind === "ship" ? enemy.x : game.player.x;
-          enemy.warningFor = enemy.kind === "interceptor" ? 0.9 : 0.72;
+          enemy.warningFor = (enemy.kind === "interceptor" ? 0.9 : 0.72) * game.difficulty.telegraph;
         }
       }
     }
@@ -575,7 +652,7 @@ export function stepGame(game: Game, dt: number, input: GameInput, onEvent: (eve
 
 function damagePlayer(game: Game, onEvent: (event: GameEvent) => void) {
   const player = game.player;
-  player.invulnerable = 1.6;
+  player.invulnerable = game.difficulty.invulnerable;
   if (player.shield > 0) {
     player.shield = 0;
   } else {
@@ -614,7 +691,7 @@ function beginIntermission(game: Game, onEvent: (event: GameEvent) => void) {
   const project = game.content.projects[game.wave % Math.max(1, game.content.projects.length)];
   const kind: Pickup["kind"] = game.health < 3 ? "repair" : project ? "project" : "shield";
   game.pickups.push({
-    x: Math.max(36, Math.min(game.width - 36, game.player.x + (game.random() - 0.5) * game.width * 0.32)),
+    x: Math.max(playfieldBounds(game.width).left + 24, Math.min(playfieldBounds(game.width).right - 24, game.player.x + (game.random() - 0.5) * game.width * 0.32)),
     y: Math.max(72, game.player.y - 110),
     kind,
     label: kind === "project" ? project.title : game.content.skills[game.wave % Math.max(1, game.content.skills.length)] ?? "Upgrade",
@@ -636,6 +713,11 @@ function advanceRound(game: Game, onEvent: (event: GameEvent) => void) {
     return;
   }
 
+  beginBoss(game);
+  onEvent("wave");
+}
+
+function beginBoss(game: Game) {
   game.wave = 4;
   game.roundState = "boss";
   game.phase = "boss";
@@ -643,36 +725,43 @@ function advanceRound(game: Game, onEvent: (event: GameEvent) => void) {
   game.bullets = [];
   game.hazards = [];
   game.enemies.push({
-    kind: "boss", x: game.width / 2, y: -65, radius: 48, hp: BOSS_HP, vy: 120,
+    kind: "boss", x: game.width / 2, y: -65, radius: 48, hp: game.bossMaxHp, vy: 120,
     drift: 0, age: 0, shot: 0, flash: 0, warningFor: 0, targetX: game.player.x,
   });
   game.bossFight = {
     phase: 1, mode: "intro", timer: 1.5, attacksInPhase: 0, sequenceStep: 0, coreOpen: false,
     thresholdHit: false, counterWindowSeen: false, attackX: game.player.x, followupFired: false, followupWarning: 0,
   };
-  onEvent("wave");
+  game.escortIn = game.difficulty.bossEscortEvery;
+  game.pickupIn = game.difficulty.pickupEvery;
 }
 
 function fireEnemyAttack(game: Game, enemy: Enemy) {
   const x = enemy.x;
   const y = enemy.y + enemy.radius;
+  const { bulletSpeed, fireCooldown } = game.difficulty;
   if (enemy.kind === "interceptor") {
-    const vector = aimedShotVector(x, y, enemy.targetX, game.player.y, 270);
+    const vector = aimedShotVector(x, y, enemy.targetX, game.player.y, 270 * bulletSpeed);
     game.bullets.push({ x, y, ...vector, hostile: true });
-    enemy.shot = 2.8;
+    enemy.shot = 2.8 * fireCooldown;
     return;
   }
   if (enemy.kind === "alien") {
-    for (const vx of [-70, 0, 70]) game.bullets.push({ x, y, vx, vy: 245, hostile: true });
-    enemy.shot = 2.8;
+    for (const vx of [-70, 0, 70]) game.bullets.push({ x, y, vx: vx * bulletSpeed, vy: 245 * bulletSpeed, hostile: true });
+    enemy.shot = 2.8 * fireCooldown;
     return;
   }
-  game.bullets.push({ x, y, vx: 0, vy: 220, hostile: true });
-  enemy.shot = 2.2;
+  game.bullets.push({ x, y, vx: 0, vy: 220 * bulletSpeed, hostile: true });
+  enemy.shot = 2.2 * fireCooldown;
 }
 
-function bossThreshold(phase: BossPhase) {
-  return phase === 1 ? BOSS_HP * (2 / 3) : phase === 2 ? BOSS_HP / 3 : 0;
+function bossThreshold(game: Game, phase: BossPhase) {
+  return phase === 1 ? game.bossMaxHp * (2 / 3) : phase === 2 ? game.bossMaxHp / 3 : 0;
+}
+
+function clampToPlayfield(game: Game, x: number) {
+  const { left, right } = playfieldBounds(game.width);
+  return Math.max(left + PLAYER_EDGE, Math.min(right - PLAYER_EDGE, x));
 }
 
 function beginBossTelegraph(game: Game) {
@@ -680,8 +769,8 @@ function beginBossTelegraph(game: Game) {
   if (!fight) return;
   fight.mode = "telegraph";
   fight.coreOpen = false;
-  fight.timer = fight.phase === 3 ? 1.5 : 1.15;
-  fight.attackX = Math.max(30, Math.min(game.width - 30, game.player.x));
+  fight.timer = (fight.phase === 3 ? 1.5 : 1.15) * game.difficulty.bossTempo;
+  fight.attackX = clampToPlayfield(game, game.player.x);
   fight.followupFired = false;
   fight.followupWarning = 0;
 }
@@ -711,7 +800,7 @@ export function bossFanVectors(
 function fireBossFan(game: Game, boss: Enemy, targetX: number, speed = BOSS_FAN_SPEED, spread = BOSS_FAN_SPREAD) {
   const x = boss.x;
   const y = boss.y + boss.radius * 0.65;
-  const vectors = bossFanVectors(x, y, targetX, game.player.y, speed, spread);
+  const vectors = bossFanVectors(x, y, targetX, game.player.y, speed * game.difficulty.bulletSpeed, spread);
   let flightTime = 0;
   for (const { vx, vy } of vectors) {
     game.bullets.push({ x, y, vx, vy, hostile: true });
@@ -723,7 +812,7 @@ function fireBossFan(game: Game, boss: Enemy, targetX: number, speed = BOSS_FAN_
 function bossAimedBullet(game: Game, boss: Enemy, targetX: number) {
   const x = boss.x;
   const y = boss.y + boss.radius * 0.65;
-  const speed = 260;
+  const speed = 260 * game.difficulty.bulletSpeed;
   const vector = aimedShotVector(x, y, targetX, game.player.y, speed);
   game.bullets.push({ x, y, ...vector, hostile: true });
   return (game.player.y + 16 - y) / vector.vy;
@@ -747,18 +836,18 @@ function fireBossAttack(game: Game) {
     fight.attacksInPhase += 1;
     const width = Math.max(44, Math.min(62, game.width * 0.16));
     game.hazards.push({ kind: "rail-pulse", x: fight.attackX, y: 0, width, height: game.height, gapX: 0, gapWidth: 0, age: 0, warningFor: 0.12, activeFor: 0.82, velocity: 0, drift: 0 });
-    fight.timer = BOSS_PHASE_TWO_ATTACK_SECONDS;
+    fight.timer = BOSS_PHASE_TWO_ATTACK_SECONDS * game.difficulty.bossTempo;
   } else {
     fight.attacksInPhase += 1;
-    const left = game.width * 0.12;
-    const width = game.width - left * 2;
+    const { left, span: width } = playfieldBounds(game.width);
     game.hazards.push({
       kind: "debris-gate", x: left, y: game.player.y - 560, width, height: 22,
       gapX: left + width * (0.3 + game.random() * 0.4),
-      gapWidth: Math.max(92, Math.min(138, width * 0.32)),
-      age: 0, warningFor: 3.2, activeFor: 12, velocity: BOSS_GATE_SPEED, drift: game.random() < 0.5 ? -42 : 42,
+      gapWidth: Math.max(92, Math.min(138, width * 0.32)) * game.difficulty.gapScale,
+      age: 0, warningFor: 3.2 * game.difficulty.telegraph, activeFor: 12, velocity: BOSS_GATE_SPEED * game.difficulty.enemySpeed,
+      drift: (game.random() < 0.5 ? -42 : 42) * game.difficulty.enemySpeed,
     });
-    fight.timer = 8;
+    fight.timer = 8 * game.difficulty.bossTempo;
   }
 }
 
@@ -766,6 +855,14 @@ function updateBoss(game: Game, dt: number, onEvent: (event: GameEvent) => void)
   const fight = game.bossFight;
   if (!fight || game.phase !== "boss") return;
   fight.timer -= dt;
+  if (game.difficulty.bossEscortEvery > 0 && fight.mode !== "intro" && fight.mode !== "transition") {
+    // Harder flights send interceptors to screen the final craft.
+    game.escortIn -= dt;
+    if (game.escortIn <= 0) {
+      game.escortIn = game.difficulty.bossEscortEvery;
+      if (game.enemies.filter((enemy) => enemy.kind === "interceptor").length < game.difficulty.bossEscortCap) spawnEnemy(game, "interceptor");
+    }
+  }
   if (fight.mode === "intro") {
     if (fight.timer <= 0) beginBossTelegraph(game);
     return;
@@ -816,13 +913,13 @@ function updateBoss(game: Game, dt: number, onEvent: (event: GameEvent) => void)
     if (fight.timer <= 0) {
       if (fight.phase === 1 && fight.sequenceStep === 1) {
         fight.mode = "telegraph";
-        fight.timer = 1.15;
-        fight.attackX = Math.max(30, Math.min(game.width - 30, game.player.x));
+        fight.timer = 1.15 * game.difficulty.bossTempo;
+        fight.attackX = clampToPlayfield(game, game.player.x);
         game.bullets = game.bullets.filter((bullet) => !bullet.hostile);
         return;
       }
       fight.mode = "recovery";
-      fight.timer = BOSS_RECOVERY_SECONDS;
+      fight.timer = BOSS_RECOVERY_SECONDS * game.difficulty.bossTempo;
       fight.coreOpen = true;
       fight.counterWindowSeen = true;
       game.bullets = game.bullets.filter((bullet) => !bullet.hostile);
@@ -846,13 +943,13 @@ function updateBoss(game: Game, dt: number, onEvent: (event: GameEvent) => void)
   if (fight.mode === "transition" && fight.timer <= 0) {
     if (fight.phase < 3) fight.phase = (fight.phase + 1) as BossPhase;
     fight.mode = "telegraph";
-    fight.timer = fight.phase === 3 ? 1.5 : 1.15;
+    fight.timer = (fight.phase === 3 ? 1.5 : 1.15) * game.difficulty.bossTempo;
     fight.attacksInPhase = 0;
     fight.sequenceStep = 0;
     fight.thresholdHit = false;
     fight.counterWindowSeen = false;
     fight.coreOpen = false;
-    fight.attackX = Math.max(30, Math.min(game.width - 30, game.player.x));
+    fight.attackX = clampToPlayfield(game, game.player.x);
     fight.followupFired = false;
     fight.followupWarning = 0;
     onEvent("boss-phase");
@@ -864,8 +961,8 @@ function damageEnemy(game: Game, enemy: Enemy, damage: number, onEvent: (event: 
   if (boss) {
     const fight = game.bossFight;
     if (!fight || fight.mode === "intro" || fight.mode === "transition") return;
-    const threshold = bossThreshold(fight.phase);
-    const appliedDamage = fight.coreOpen ? damage * 2 : damage >= 10 ? damage : damage * BOSS_HULL_DAMAGE_MULTIPLIER;
+    const threshold = bossThreshold(game, fight.phase);
+    const appliedDamage = fight.coreOpen ? damage * 2 : damage >= 10 ? damage : damage * game.difficulty.bossHullDamage;
     const nextHp = enemy.hp - appliedDamage;
     if (fight.phase < 3 && nextHp <= threshold) {
       enemy.hp = threshold;
@@ -903,7 +1000,7 @@ function damageEnemy(game: Game, enemy: Enemy, damage: number, onEvent: (event: 
       game.spawned.push({ ...enemy, radius: 12, hp: 1, x: enemy.x + side * 10, drift, vy: enemy.vy * 1.2, age: 0, flash: 0 });
     }
   }
-  if (!boss && game.random() < 0.12) {
+  if (!boss && game.random() < game.difficulty.dropChance) {
     const kind = UPGRADES[Math.floor(game.random() * UPGRADES.length)];
     game.pickups.push({ x: enemy.x, y: enemy.y, kind, label: game.content.skills[Math.floor(game.random() * game.content.skills.length)] ?? "Upgrade" });
   }
