@@ -103,7 +103,7 @@ export const DATA = {
     { href: "/blog", icon: NotebookIcon, label: "Blog" },
   ],
   contact: {
-    email: "krithick008@proton.me",
+    email: "j.krithik8@gmail.com",
     social: {
       GitHub: {
         name: "GitHub",
@@ -119,7 +119,7 @@ export const DATA = {
       },
       email: {
         name: "Send Email",
-        url: "mailto:krithick008@proton.me",
+        url: "mailto:j.krithik8@gmail.com",
         icon: Icons.email,
         navbar: false,
       },
