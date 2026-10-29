@@ -178,6 +178,29 @@ export const DATA = {
   ],
   projects: [
     {
+      title: "SnapKey Map",
+      href: "https://heykay-47.github.io/SnapKeyMap/",
+      dates: "Oppo/Oneplus Snap Key Remapper",
+      active: true,
+      description:
+        "Built a native Android app that lets you remap the Snap Key on supported Oppo and OnePlus phones to launch apps, control music, toggle the flashlight, and navigate your phone.",
+      technologies: ["Kotlin", "Jetpack Compose", "Material 3", "Shizuku"],
+      links: [
+        {
+          type: "Live",
+          href: "https://heykay-47.github.io/SnapKeyMap/",
+          icon: <ArrowUpRight className="size-3" />,
+        },
+        {
+          type: "Source",
+          href: "https://github.com/heykay-47/SnapKeyMap",
+          icon: <Icons.github className="size-3" />,
+        },
+      ],
+      image: "/projects/snapkey-map.webp",
+      video: "",
+    },
+    {
       title: "llmbid.lol",
       href: "https://llmbid.lol/",
       dates: "Live LLM product",

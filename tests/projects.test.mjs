@@ -5,12 +5,14 @@ import test from "node:test";
 const resume = readFileSync(new URL("../src/data/resume.tsx", import.meta.url), "utf8");
 const projects = resume.slice(resume.indexOf("projects: ["), resume.indexOf("hackathons: ["));
 const normalizedProjects = projects.replace(/\s+/g, " ");
+const snapkeyStart = normalizedProjects.indexOf('title: "SnapKey Map"');
 const llmbidStart = normalizedProjects.indexOf('title: "llmbid.lol"');
+const snapkeyProject = normalizedProjects.slice(snapkeyStart, llmbidStart);
 const llmbidEnd = normalizedProjects.indexOf('title: "VouchIt"', llmbidStart);
 const llmbidProject = normalizedProjects.slice(llmbidStart, llmbidEnd);
 const vouchitProject = normalizedProjects.slice(llmbidEnd, normalizedProjects.indexOf('title: "ApartCheck"', llmbidEnd));
 
-test("matches the approved five-project lineup and primary destinations", () => {
+test("matches the approved six-project lineup and primary destinations", () => {
   const titles = [...projects.matchAll(/title: "([^"]+)"/g)].map(
     ([, title]) => title,
   );
@@ -19,6 +21,7 @@ test("matches the approved five-project lineup and primary destinations", () => 
   ].map(([, href]) => href);
 
   assert.deepEqual(titles, [
+    "SnapKey Map",
     "llmbid.lol",
     "VouchIt",
     "ApartCheck",
@@ -26,6 +29,7 @@ test("matches the approved five-project lineup and primary destinations", () => 
     "Google Classroom Auto File Downloader",
   ]);
   assert.deepEqual(primaryDestinations, [
+    "https://heykay-47.github.io/SnapKeyMap/",
     "https://llmbid.lol/",
     "https://vouchit-xi.vercel.app/",
     "https://apartcheck-heykay-47.onrender.com",
@@ -43,6 +47,7 @@ test("matches the approved five-project lineup and primary destinations", () => 
 
 test("uses the supplied project screenshots", () => {
   for (const image of [
+    "/projects/snapkey-map.webp",
     "/projects/llmbid_headerPage.png",
     "/projects/vouchit_headerPage.png",
     "/projects/apartcheck_headerPage.png",
@@ -60,6 +65,16 @@ test("uses the supplied project screenshots", () => {
       `missing project image asset: ${image}`,
     );
   }
+});
+
+test("shows SnapKey Map's supported brands, useful actions, stack, and links", () => {
+  assert.match(snapkeyProject, /dates: "Oppo\/Oneplus Snap Key Remapper"/);
+  const description = snapkeyProject.match(/description: "([^"]+)"/)[1];
+  assert.equal(description, "Built a native Android app that lets you remap the Snap Key on supported Oppo and OnePlus phones to launch apps, control music, toggle the flashlight, and navigate your phone.");
+  assert.doesNotMatch(description, /gesture|press|hold|tap|root|Shizuku|ADB|log-access|setup/i);
+  assert.match(snapkeyProject, /technologies: \["Kotlin", "Jetpack Compose", "Material 3", "Shizuku"\]/);
+  assert.match(snapkeyProject, /type: "Live", href: "https:\/\/heykay-47\.github\.io\/SnapKeyMap\/"/);
+  assert.match(snapkeyProject, /type: "Source", href: "https:\/\/github\.com\/heykay-47\/SnapKeyMap"/);
 });
 
 test("keeps VouchIt's stack and project links aligned with its README", () => {

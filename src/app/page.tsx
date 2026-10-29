@@ -9,7 +9,7 @@ import ContactSection from "@/components/section/contact-section";
 import HackathonsSection from "@/components/section/hackathons-section";
 import ProjectsSection from "@/components/section/projects-section";
 import WorkSection from "@/components/section/work-section";
-import LlmbidBanner from "@/components/llmbid-banner";
+import SnapKeyMapBanner from "@/components/snapkey-map-banner";
 import ResumeLink from "@/components/resume-link";
 import { ArrowUpRight } from "lucide-react";
 import ArcadeLauncher from "@/components/arcade/arcade-launcher";
@@ -21,7 +21,7 @@ export default function Page() {
     <main className="min-h-dvh flex flex-col gap-14 relative">
       <section id="hero" className="space-y-8">
         <BlurFade delay={BLUR_FADE_DELAY}>
-          <LlmbidBanner />
+          <SnapKeyMapBanner />
         </BlurFade>
         <div className="mx-auto w-full max-w-2xl space-y-8">
           <div className="flex flex-col justify-between gap-x-6 gap-y-6 md:flex-row">

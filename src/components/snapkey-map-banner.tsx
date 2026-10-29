@@ -4,15 +4,15 @@ import { useMotionPlayback } from "@/components/motion-playback-provider";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { ArrowUpRight } from "lucide-react";
 
-export default function LlmbidBanner() {
+export default function SnapKeyMapBanner() {
   const { isMotionPaused } = useMotionPlayback();
 
   return (
     <a
-      href="https://llmbid.lol"
+      href="https://heykay-47.github.io/SnapKeyMap/"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Visit llmbid.lol, a $1 LLM popularity leaderboard"
+      aria-label="Visit SnapKey Map, an Oppo/Oneplus Snap Key remapper"
       className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 focus-visible:ring-offset-background"
     >
       <div className="relative rounded-xl bg-background">
@@ -20,14 +20,14 @@ export default function LlmbidBanner() {
           <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                llmbid.lol
+                SnapKey Map
               </span>
               <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
                 New project
               </span>
             </div>
-            <p className="truncate text-sm text-muted-foreground sm:text-[15px]">
-              A $1 LLM popularity leaderboard
+            <p className="text-sm text-muted-foreground sm:text-[15px]">
+              Remap your Oppo/Oneplus Snap Key
             </p>
           </div>
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted/40 text-muted-foreground transition-colors duration-200 group-hover:border-amber-500/50 group-hover:bg-amber-500/10 group-hover:text-amber-700 dark:group-hover:text-amber-300">
